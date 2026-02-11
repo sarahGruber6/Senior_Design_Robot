@@ -1,0 +1,9 @@
+{
+  "job_id": "J001",
+  "destination": "Bin_A3",
+  "items": [
+    {"part": "M3x10 screw", "qty": 12},
+    {"part": "10k resistor", "qty": 50}
+  ],
+  "created_by": "sarah"
+}

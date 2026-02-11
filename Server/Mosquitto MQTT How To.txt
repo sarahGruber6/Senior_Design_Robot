@@ -1,0 +1,27 @@
+These steps are assuming you are on a Windows computer with admin privileges, if you're on Linux I expect you to know how to figure it out, lol!
+
+how to open MQTT broker manually:
+	navigate to mosquitto folder and run mosquitto.exe
+	  $ cd ..\Senior Design\Server\Mosquitto
+	  $ .\mosquitto.exe
+	done! to test broker, open two shells in mosquitto directory:
+	  shell 1: $ .\mosquitto_sub.exe -t "test/topic"
+	  shell 2: $ .\mosquitto_pub.exe -t "test/topic" -m "hello"
+	  "hello" should print in shell 1
+
+opening and testing the publishing api:
+	navigate to the python folder and activate the venv
+	  $ cd ..\Senior Design\Python
+	  $ .\.venv\Scripts\activate
+	then run the server
+	  $ set MQTT_HOST=127.0.0.1
+	  $ python .\publisher_api.py
+	you can test if the server and MQTT are working together by 
+	subscribing opening two shells:
+	  shell 1: $ cd ..\Mosquitto
+		   $ .\mosquitto_sub.exe -h 127.0.0.1 -t "robot/r1/cmd/job"
+	  shell 2: $ cd ..\Server
+		   $ curl.exe -X POST http://127.0.0.1:5000/api/jobs -H "Content-Type: application/json" --data-binary "@example_job.json"
+	  the json should print in shell 1
+		
+
