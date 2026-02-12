@@ -1,0 +1,24 @@
+These steps are assuming you are on a Windows computer with admin privileges, if you're on Linux I expect you to know how to figure it out, lol!
+
+how to open MQTT broker manually:
+	navigate to mosquitto folder and run mosquitto.exe
+	  $ cd ..\Server\Mosquitto
+	  $ .\mosquitto.exe
+	done! to test broker, open two shells in mosquitto directory:
+	  shell 1: $ .\mosquitto_sub.exe -t "test/topic"
+	  shell 2: $ .\mosquitto_pub.exe -t "test/topic" -m "hello"
+	  "hello" should print in shell 1
+
+opening and testing the publishing api:
+	activate the virtual environment!
+	  $ .\.venv\Scripts\activate
+	then run the server
+	  $ set MQTT_HOST=127.0.0.1
+	  $ python -m Server.app
+	
+From here you can test many things! Jobs are sent to a .db file in the Server/job_db folder, you will have to download SQLite Browser to open and view this, which you can do here
+https://sqlitebrowser.org/dl/
+similar to WinRAR, download the zip, unzip, then open the .db file with the exe found in the unzipped file.
+I've also made an endpoint on the server where you can just view the json of all the jobs in queue. The archive button renames the current file to the date/time and sends it to the /archive/ folder. 
+		
+

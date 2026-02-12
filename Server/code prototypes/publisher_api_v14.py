@@ -1,4 +1,4 @@
-# v1.4 adds an "archive DB" button for easy testing, and reworks it so messing with UI stuff is easier/less likely to break stuff :3
+# v1.4 adds "archive DB" and "Job Queue" buttons for easy testing and archive functionality!
 
 import json
 import os
@@ -13,7 +13,7 @@ BROKER_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
 BROKER_PORT = int(os.getenv("MQTT_PORT", "1883"))
 ROBOT_ID = os.getenv("ROBOT_ID", "r1")
 DB_PATH = Path("jobs.db") # local for now? or forever?
-ARCHIVE_DIR = Path("archive")
+ARCHIVE_DIR = Path("jobs_archive")
 
 TOPIC_JOB = f"robot/{ROBOT_ID}/cmd/job"             # command
 TOPIC_DONE = f"robot/{ROBOT_ID}/evt/done"           # event

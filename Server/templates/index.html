@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Robot Job Publisher</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; max-width: 900px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    input, textarea { width: 100%; padding: 10px; font-size: 14px; }
+    button { margin-top: 16px; padding: 12px 16px; font-size: 14px; cursor: pointer; }
+    .hint { color: #666; font-size: 13px; margin-top: 6px; }
+    .box { background:#f7f7f7; padding:16px; border-radius:12px; }
+    hr { margin: 18px 0; }
+  </style>
+</head>
+<body>
+  <h2>Robot Job Publisher (Robot: {{ robot_id }})</h2>
+
+  <div class="box">
+    <form method="post" action="/submit">
+      <label>Job ID</label>
+      <input name="job_id" value="J001"/>
+
+      <label>Destination</label>
+      <input name="destination" value="Bin_A3"/>
+
+      <label>Items (one per line: Part Name,Qty)</label>
+      <textarea name="items" rows="6">M3x10 screw,12
+10k resistor,50</textarea>
+      <div class="hint">Example line: <code>10k resistor,50</code></div>
+
+      <label>Note (optional)</label>
+      <input name="note" value="Load into tote #2"/>
+
+      <label>Created By</label>
+      <input name="created_by" value="labtech1"/>
+
+      <button type="submit">Queue Job</button>
+    </form>
+
+    <form method="get" action="/api/jobs">
+      <button type="submit">View Job Queue (JSON)</button>
+    </form>
+
+    <hr>
+
+    <form method="post" action="/api/robot/claim_next">
+      <button type="submit">Claim Next Job</button>
+    </form>
+
+    <form method="post" action="/api/admin/archive_db">
+      <button type="submit">Archive DB (wipe queue)</button>
+    </form>
+  </div>
+
+  <p class="hint">Publishes to MQTT topic: <code>{{ topic_job }}</code> (QoS1, retained)</p>
+</body>
+</html>
