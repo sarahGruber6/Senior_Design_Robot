@@ -1,3 +1,5 @@
+# v1 is just basic MQTT interface. jobs can only be sent through CURL
+
 import json
 import os
 from datetime import datetime, timezone

@@ -121,7 +121,7 @@ def submit_form():
     publish_job(payload)
 
     return Response(
-        f"<p>✅ Published job <b>{job_id}</b> to <code>{TOPIC_JOB}</code>.</p>"
+        f"<p>Published job <b>{job_id}</b> to <code>{TOPIC_JOB}</code>.</p>"
         f"<p><a href='/'>Publish another</a></p>"
         f"<pre>{json.dumps(payload, indent=2)}</pre>",
         mimetype="text/html"
