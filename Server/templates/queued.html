@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Job Queued</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; background:#f4f6f8; }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 4px 10px rgba(0,0,0,.06); }
+    .row { display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; background:#e3f2fd; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #eee; text-align:left; }
+    th { color:#555; font-size:13px; }
+    .btn { display:inline-block; margin-top:14px; padding:10px 14px; border-radius:10px; background:#1976d2; color:#fff; text-decoration:none; font-weight:700; }
+    .btn.secondary { background:#e3e8ef; color:#111; }
+    details { margin-top:12px; }
+    pre { background:#f7f7f7; padding:12px; border-radius:10px; overflow:auto; }
+    .muted { color:#666; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2 style="margin:0 0 6px 0;">✅ Job queued</h2>
+
+      <div class="row">
+        <div><span class="pill">{{ job.get("status", "queued") }}</span></div>
+        <div><strong>Job ID:</strong> {{ job["job_id"] }}</div>
+        <div><strong>Destination:</strong> {{ job["destination"] }}</div>
+        <div><strong>Created by:</strong> {{ job["created_by"] }}</div>
+      </div>
+
+      <p class="muted" style="margin-top:10px;">
+        Robot will receive it when it claims the next job.
+      </p>
+
+      <h3 style="margin:16px 0 6px 0;">Items</h3>
+      <table>
+        <thead>
+          <tr><th>Part</th><th>Qty</th></tr>
+        </thead>
+        <tbody>
+          {% for it in job["items"] %}
+          <tr>
+            <td>{{ it["part"] }}</td>
+            <td><strong>{{ it["qty"] }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if job.get("note") %}
+        <p style="margin-top:12px;"><strong>Note:</strong> {{ job["note"] }}</p>
+      {% endif %}
+
+      <a class="btn" href="/">Queue another job</a>
+      <a class="btn secondary" href="/api/jobs">View queue (JSON)</a>
+
+      <details>
+        <summary>Show technical details (raw JSON)</summary>
+        <pre>{{ job | tojson(indent=2) }}</pre>
+      </details>
+    </div>
+  </div>
+</body>
+</html>

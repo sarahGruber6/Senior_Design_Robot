@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Job Queue</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; background:#f4f6f8; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .card { background:#fff; border-radius:14px; padding:18px; box-shadow:0 4px 10px rgba(0,0,0,.06); }
+
+    .top { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom: 14px; }
+    .title { margin:0; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn { display:inline-block; padding:10px 14px; border-radius:10px; background:#1976d2; color:#fff; text-decoration:none; font-weight:700; }
+    .btn.secondary { background:#e3e8ef; color:#111; }
+
+    .filters { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 0; }
+    .chip { display:inline-block; padding:6px 10px; border-radius:999px; background:#eef2f6; text-decoration:none; color:#111; font-weight:700; font-size:13px; }
+    .chip.active { background:#111; color:#fff; }
+
+    table { width:100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #eee; text-align:left; vertical-align: top; }
+    th { color:#555; font-size:13px; }
+
+    .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:800; }
+    .queued { background:#e3f2fd; }
+    .active { background:#fff3cd; }
+    .done { background:#e8f5e9; }
+    .error { background:#ffebee; }
+
+    ul { margin:0; padding-left:18px; }
+    code { background:#f2f2f2; padding:2px 6px; border-radius:6px; }
+    .muted { color:#666; font-size:13px; }
+
+    .empty { padding: 14px; border: 1px dashed #ccc; border-radius: 12px; background:#fafafa; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h2 class="title">Job Queue</h2>
+      <div class="actions">
+        <a class="btn secondary" href="/">Back</a>
+        <a class="btn" href="/queue">Refresh</a>
+        <a class="btn secondary" href="/api/jobs">View JSON</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <a class="chip {% if status_filter == 'all' %}active{% endif %}" href="/queue">All</a>
+        <a class="chip {% if status_filter == 'queued' %}active{% endif %}" href="/queue?status=queued">Queued</a>
+        <a class="chip {% if status_filter == 'active' %}active{% endif %}" href="/queue?status=active">Active</a>
+        <a class="chip {% if status_filter == 'done' %}active{% endif %}" href="/queue?status=done">Done</a>
+      </div>
+
+      {% if not jobs or jobs|length == 0 %}
+        <div class="empty" style="margin-top:12px;">
+          <b>No jobs found.</b>
+          <div class="muted">Queue a job from the home page.</div>
+        </div>
+      {% else %}
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Job</th>
+              <th>Destination</th>
+              <th>Items</th>
+              <th>Created</th>
+              <th>By</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for j in jobs %}
+              {% set st = j.get("status", "queued") %}
+              <tr>
+                <td><span class="badge {{ st }}">{{ st }}</span></td>
+                <td><code>{{ j.get("job_id","") }}</code></td>
+                <td><b>{{ j.get("destination","") }}</b></td>
+                <td>
+                  <ul>
+                    {% for it in j.get("items", []) %}
+                      <li>{{ it.get("part","") }} — <b>{{ it.get("qty","") }}</b></li>
+                    {% endfor %}
+                  </ul>
+                </td>
+                <td class="muted">{{ j.get("created_at","") }}</td>
+                <td>{{ j.get("created_by","") }}</td>
+                <td class="muted">{{ j.get("note","") }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
