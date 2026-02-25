@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-BROKER_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
-BROKER_PORT = int(os.getenv("MQTT_PORT", "1883"))
+MQTT_HOST = os.getenv("MQTT_HOST", "127.0.0.1")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 ROBOT_ID = os.getenv("ROBOT_ID", "r1")
 
 BASE_DIR = Path(__file__).parent

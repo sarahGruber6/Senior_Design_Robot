@@ -1,8 +1,11 @@
 import json
 from datetime import datetime, timezone
 import paho.mqtt.client as mqtt
+import os
+import socket
+import time
 
-from .config import BROKER_HOST, BROKER_PORT, TOPIC_JOB, TOPIC_DONE, TOPIC_TELEMETRY
+from .config import MQTT_HOST, MQTT_PORT, TOPIC_JOB, TOPIC_DONE, TOPIC_TELEMETRY
 from .db import mark_done
 
 STATE = {
@@ -21,7 +24,7 @@ class MqttBus:
         self.client.on_message = self.on_message
 
     def start(self):
-        self.client.connect(BROKER_HOST, BROKER_PORT, keepalive=60)
+        self.client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
         self.client.loop_start()
 
     def publish_job(self, payload: dict):
@@ -33,8 +36,11 @@ class MqttBus:
         self.client.publish(TOPIC_JOB, payload=b"", qos=1, retain=True)
 
     def on_connect(self, client, userdata, flags, rc):
-        client.subscribe([(TOPIC_DONE, 1), (TOPIC_TELEMETRY, 0)])
-        print(f"[MQTT] Connected rc={rc}. Subscribed to {TOPIC_DONE} and {TOPIC_TELEMETRY}")
+        if rc == 0:
+            print(f"[MQTT] Connected successfully rc={rc}")
+            client.subscribe([(TOPIC_DONE, 1), (TOPIC_TELEMETRY, 0)])
+        else:
+            print(f"[MQTT] Connection failed rc={rc}")
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic

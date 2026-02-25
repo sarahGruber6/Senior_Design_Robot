@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 
 from .config import ROBOT_ID, TOPIC_JOB, TOPIC_DONE, TOPIC_TELEMETRY
-from .db import enqueue_job, list_jobs, get_active_job, claim_next_job
+from .db import enqueue_job, list_jobs, get_active_job, claim_next_job, mark_done
 from .mqtt_client import STATE, MqttBus
 from .admin import archive_db
 
@@ -51,7 +51,8 @@ def bind_api(bus: MqttBus):
             return jsonify({"error": err}), 400
         return jsonify({"ok": True, "status": "queued", "job_id": payload["job_id"]})
 
-    # Robot claim
+    # -------- Robot Stuff --------
+
     @api.post("/api/robot/claim_next")
     def api_claim_next():
         active = get_active_job()
@@ -66,7 +67,30 @@ def bind_api(bus: MqttBus):
         bus.publish_job(nxt)
         return jsonify({"ok": True, "message": "Claimed next job", "claimed": nxt})
 
-    # Admin archive
+    @api.post("/api/robot/done")
+    def robot_done():
+        data = request.get_json(force=True)
+        job_id = data.get("job_id", "").strip()
+        if not job_id:
+            return jsonify({"ok": False, "error": "missing job_id"}), 400
+
+        mark_done(job_id)
+        bus.clear_retained_job() 
+        return jsonify({"ok": True, "job_id": job_id})        
+
+    @api.get("/api/robot/active_or_next")
+    def active_or_next():
+        active = get_active_job()
+        if active:
+            return jsonify({"ok": True, "job": active})
+        nxt = claim_next_job()  # otherwise claim next queued job
+        if not nxt:
+            return jsonify({"ok": True, "job": None})
+        bus.publish_job(nxt)
+        return jsonify({"ok": True, "job": nxt})    
+
+    # -------- Admin --------
+
     @api.post("/api/admin/archive_db")
     def api_archive():
         ok, msg = archive_db(bus)
