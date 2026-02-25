@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, Response
 from datetime import datetime, timezone
 import json
 
-from .db import enqueue_job
+from .db import enqueue_job, list_jobs
 from .config import ROBOT_ID, TOPIC_JOB
 
 pages = Blueprint("pages", __name__)
@@ -13,7 +13,7 @@ def now_iso():
 @pages.get("/")
 def index():
     return render_template("index.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB)
-
+ 
 @pages.post("/submit")
 def submit_form():
     job_id = request.form.get("job_id", "").strip()
@@ -54,10 +54,16 @@ def submit_form():
     if not ok:
         return Response(err, status=400)
 
-    return Response(
-        f"<p>Queued job <b>{job_id}</b> (status: <b>queued</b>).</p>"
-        f"<p>Robot will receive it when it claims the next job.</p>"
-        f"<p><a href='/'>Back</a></p>"
-        f"<pre>{json.dumps(payload, indent=2)}</pre>",
-        mimetype="text/html",
-    )
+    payload["status"] = "queued"
+
+    return render_template("queued.html", job=payload)
+
+@pages.get("/queue")
+def queue_page():
+    status_filter = request.args.get("status", "").strip().lower()
+    jobs = list_jobs()
+
+    if status_filter in {"queued", "active", "done"}:
+        jobs = [j for j in jobs if j.get("status") == status_filter]
+
+    return render_template("view_queue.html", jobs=jobs, status_filter=(status_filter or "all"))
