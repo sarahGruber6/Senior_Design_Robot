@@ -49,6 +49,12 @@ def bind_api(bus: MqttBus):
         ok, err = enqueue_job(payload)
         if not ok:
             return jsonify({"error": err}), 400
+        
+        active = get_active_job()
+        if not active:
+            nxt = claim_next_job()
+            if nxt:
+                bus.publish_job(nxt)
         return jsonify({"ok": True, "status": "queued", "job_id": payload["job_id"]})
 
     # -------- Robot Stuff --------

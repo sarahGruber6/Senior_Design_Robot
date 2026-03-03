@@ -28,6 +28,7 @@ class MqttBus:
         self.client.loop_start()
 
     def publish_job(self, payload: dict):
+        print("[MQTT] publish_job called, connected=", self.client.is_connected())
         msg = json.dumps(payload, separators=(",", ":"))
         self.client.publish(TOPIC_JOB, msg, qos=1, retain=True)
         STATE["last_published_job"] = payload
