@@ -4,39 +4,38 @@
 
 **How to open MQTT broker:**
 
- 	1. navigate to parent folder and run mosquitto.exe
+1. navigate to parent folder and run mosquitto.exe 
 
- 	  $ .\\Server\\Mosquitto\\mosquitto.exe
+&nbsp;	$ .\\Server\\Mosquitto\\mosquitto.exe
 
- 	done! to test broker, you can open two shells:
+2\. done! to test broker, you can open two shells:
 
  	  shell 1: $ .\\Server\\Mosquitto\\mosquitto\_sub.exe -t "test/topic"
 
  	  shell 2: $ .\\Server\\Mosquitto\\mosquitto\_pub.exe -t "test/topic" -m "hello"
 
- 	  "hello" should print in shell 1
+&nbsp;	"hello" should print in shell 1
 
 
 
 **Opening and testing the flask server:**
 
-	1. install python on your computer! i use 3.12 but any newer version should work
+1. install python on your computer! i use 3.12 but any newer version should work
+2. install virtual environment
 
- 	2. install virtual environment
+&nbsp;	$ python -m venv .venv
 
-&nbsp;	  $ python -m venv .venv
+3\. activate venv
 
- 	3. active the virtual environment
+&nbsp;	$ .\\Server\\.venv\\Scripts\\active
 
-&nbsp;	  $ .\\Server\\.venv\\Scripts\\activate
+4\. install dependencies
 
- 	4. install dependencies
+&nbsp;	$ pip install -r .\\Server\\requirements.txt
 
-&nbsp;	  $ pip install -r .\\Server\\requirements.txt
+5\. run the server!
 
-&nbsp;	5. run the server!
-
-&nbsp;	  $ python -m Server.app
+&nbsp;	$ python -m Server.app
 
  
 
