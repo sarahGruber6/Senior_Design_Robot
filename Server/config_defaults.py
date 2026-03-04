@@ -4,7 +4,7 @@ from pathlib import Path
 # config defaults
 
 MQTT_HOST = ""
-MQTT_PORT = int("")
+MQTT_PORT = ""
 ROBOT_ID = "r1"
 
 WIFI_SSID = ""

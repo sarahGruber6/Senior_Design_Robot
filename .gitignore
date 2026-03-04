@@ -1,0 +1,11 @@
+# Python virtual environment
+/Server/.venv/
+/Server/venv/
+
+# Local configs 
+/Server/config_local.py
+/Robot/config_local.h
+
+# Python cache
+/Server/__pycache__/
+/Server/*.pyc

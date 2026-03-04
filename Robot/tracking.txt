@@ -1,0 +1,15 @@
+{
+  "mode": "manual",
+  "seq": 123,
+  "v": 0.25,
+  "w": 0.0,
+  "ttl_ms": 300
+}
+
+v = linear velocity (m/s). Positive forward, negative backward.
+
+w = angular velocity (rad/s). Positive = rotate left, negative = rotate right.
+
+ttl_ms = how long the robot should keep applying it unless refreshed.
+
+seq = increasing integer so the robot can ignore old commands.
