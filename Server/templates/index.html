@@ -77,21 +77,23 @@ button{
 <form method="post" action="/submit">
 
 <label>Job ID</label>
-<input name="job_id" value="J001"/>
+<input name="job_id" value=""/>
+<div class="hint">Example: J001</div>
 
 <label>Destination</label>
-<input name="destination" value="Bin_A3"/>
+<input name="destination" value=""/>
+<div class="hint">Example: Bin_A3</div>
 
 <label>Items (Part,Qty per line)</label>
-<textarea name="items" rows="5">M3x10 screw,12
-10k resistor,50</textarea>
+<textarea name="items" rows="5"></textarea>
 <div class="hint">Example: 10k resistor,50</div>
 
 <label>Note (optional)</label>
 <input name="note"/>
 
 <label>Created By</label>
-<input name="created_by" value="labtech1"/>
+<input name="created_by" value=""/>
+<div class="hint">Example: labtech_sarah</div>
 
 <button class="primary" type="submit">Queue Job</button>
 
@@ -103,7 +105,9 @@ button{
 <div class="section-title">Robot Actions</div>
 
 
-<a class="btn secondary" href="/queue">View Job Queue</a>
+<a class="btn secondary" href="/queue">
+  <button class="warning">View Job Queue</button>
+</a>
 
 <form method="post" action="/api/robot/claim_next">
 <button class="warning">Claim Next Job</button>
@@ -114,11 +118,9 @@ button{
 <div class="card">
 <div class="section-title">Admin</div>
 
-<form method="post" action="/api/admin/archive_db"
-onsubmit="return confirm('Archive database and clear queue?');">
-<button class="danger">Archive Database</button>
-</form>
-</div>
+<a class="btn secondary" href="/admin">
+  <button class="danger">Admin Page</button>
+</a>
 
 <p class="hint">
 MQTT topic: <code>{{ topic_job }}</code>

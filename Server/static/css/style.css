@@ -1,0 +1,140 @@
+body{
+  font-family: system-ui, Arial;
+  margin: 30px auto;
+  max-width: 900px;
+  background:#f4f6f8;
+}
+
+h2{ margin-bottom:20px; }
+
+button{
+  padding:12px 18px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+  cursor:pointer;
+  margin-top:12px;
+}
+
+label{
+  display:block;
+  margin-top:12px;
+  font-weight:600;
+}
+
+input, textarea{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  font-size:14px;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.06);
+  margin-bottom:20px;
+}
+
+.section-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+/* --- controller style for manual controls --- */
+
+.segmented{
+    display:flex;
+    gap:8px;
+    margin: 88px 0 12px;
+}
+
+.seg-btn{
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid #ccc;
+    background:#fff;
+    cursor:pointer;
+}
+.seg-btn.active{
+    border-color:#000;
+    font-weight:600;
+}
+
+.panel.hidden{
+    display:none;
+}
+
+.controller-grid{
+    display:grid;
+    grid-template-columns: 56px 56px 56px;
+    grid-template-rows: 56px 56px 56px;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin: 10px 0 14px;
+}
+.controller-grid button:nth-child(1){ grid-column:2; grid-row:1; } /* up */
+.controller-grid button:nth-child(2){ grid-column:1; grid-row:2; } /* left */
+.controller-grid button:nth-child(3){ grid-column:2; grid-row:2; } /* stop */
+.controller-grid button:nth-child(4){ grid-column:3; grid-row:2; } /* right */
+.controller-grid button:nth-child(5){ grid-column:2; grid-row:3; } /* down */
+
+.ctrl{
+  height:56px; width:56px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  background:#fff;
+  font-size:20px;
+  cursor:pointer;
+}
+.ctrl.stop{
+  font-size:18px;
+}
+
+.row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 8px 0;
+}
+.row label{
+  width: 90px;
+  opacity: 0.85;
+}
+.row input{
+  flex:1;
+  padding:8px 10px;
+  border:1px solid #ccc;
+  border-radius:10px;
+}
+
+.primary{ background:#1976d2; color:white; }
+.secondary{ background:#e3e8ef; }
+.warning{ background:#ff9800; color:white; }
+.danger{ background:#e53935; color:white; }
+
+.actions button{ margin-right:10px; }
+
+.hint{
+  color:#666;
+  font-size:13px;
+  margin-top:6px;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.06);
+  margin-bottom:20px;
+}
+
+.section-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:10px;
+}

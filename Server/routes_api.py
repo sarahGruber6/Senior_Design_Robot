@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone
 
-from .config import ROBOT_ID, TOPIC_JOB, TOPIC_DONE, TOPIC_TELEMETRY
+from .config import ROBOT_ID, TOPIC_JOB, TOPIC_TWIST, TOPIC_DONE, TOPIC_TELEMETRY
 from .db import enqueue_job, list_jobs, get_active_job, claim_next_job, mark_done
 from .mqtt_client import STATE, MqttBus
 from .admin import archive_db
@@ -12,7 +12,8 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 def bind_api(bus: MqttBus):
-    # Health / status
+    # -------- Status --------
+
     @api.get("/health")
     def health():
         return jsonify({"ok": True, "robot_id": ROBOT_ID})
@@ -26,7 +27,8 @@ def bind_api(bus: MqttBus):
             "state": STATE,
         })
 
-    # Jobs
+    # -------- Jobs --------
+
     @api.get("/api/jobs")
     def api_list_jobs():
         return jsonify({"ok": True, "jobs": list_jobs()})
@@ -96,6 +98,45 @@ def bind_api(bus: MqttBus):
         return jsonify({"ok": True, "job": nxt})    
 
     # -------- Admin --------
+
+    @api.get("/api/manual/status")
+    def manual_status():
+        return jsonify({
+            "ok": True,
+            "robot_id": ROBOT_ID,
+            "topic_twist": TOPIC_TWIST
+        })
+    
+    @api.post("/api/manual/cmd")
+    def manual_cmd():
+        data = request.get_json(force=True)
+
+        # input is ex. {"action":"forward"} or {"v":0.2,"w":0.0,"ttl_ms":300}
+        action = (data.get("action") or "").strip().lower()
+        ttl_ms = int(data.get("ttl_ms",300))
+
+        # actions to v,w
+        SPEED = float(data.get("speed", 0.25))  # m/s
+        TURN = float(data.get("turn", 1.2))     # rad/s
+
+        if action == "forward":
+            v,w = SPEED,0.0
+        elif action == "backward":
+            v,w = -SPEED,0.0
+        elif action == "left":
+            v,w = 0.0,TURN
+        elif action == "right":
+            v,w = 0.0,-TURN
+        elif action == "stop":
+            v,w = 0.0,0.0
+            ttl_ms = 0
+        else:
+            # direct
+            v = float(data.get("v", 0.0))
+            w = float(data.get("w", 0.0))
+        
+        sent = bus.publish_twist(v=v,w=w,ttl_ms=ttl_ms,mode="manual")
+        return jsonify({"ok": True, "sent": sent})
 
     @api.post("/api/admin/archive_db")
     def api_archive():

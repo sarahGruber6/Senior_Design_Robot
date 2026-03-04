@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Robot Admin Page</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+<h2>Admin Page</h2>
+
+<!-- TELEMETRY -->
+<div class="card">
+<div class="section-title">Robot Info/Telemetry</div>
+
+<p>Robot ID: {{ robot_id }} </p>
+<p>Job Active: 
+    {% if jobs | selectattr("status", "equalto", "active") | list | length > 0 %}
+    True
+    {% else %}
+    False
+    {% endif %}
+</p>
+
+</div>
+
+<!-- MANUAL COMMANDS -->
+<div class="card">
+<div class="section-title">Manual Commands</div>
+
+<!-- mode select for form -->
+ <div class="segmented" role="tablist" aria-label="Drive mode">
+    <button type="button" class="seg-btn active" data-mode="controller">Controller</button>
+    <button type="button" class="seg-btn" data-mode="direct">Direct</button>
+  </div>
+
+<form method="post" action="/manual_command">
+    <input type="hidden" name="mode" id="modeField" value="controller">
+     <!-- CONTROLLER MODE -->
+    <div id="panel-controller" class="panel">
+      <div class="controller-grid">
+        <button type="submit" name="cmd" value="fwd" class="ctrl">↑</button>
+        <button type="submit" name="cmd" value="left" class="ctrl">←</button>
+        <button type="submit" name="cmd" value="stop" class="ctrl stop">■</button>
+        <button type="submit" name="cmd" value="right" class="ctrl">→</button>
+        <button type="submit" name="cmd" value="back" class="ctrl">↓</button>
+      </div>
+
+      <div class="row">
+        <label>Time (s)</label>
+        <input type="number" name="t_controller" step="0.1" min="0" value="0.5">
+      </div>
+      <small class="hint">Press a direction to send a command for the specified time.</small>
+    </div>
+
+    <!-- DIRECT MODE -->
+    <div id="panel-direct" class="panel hidden">
+      <div class="row">
+        <label>v (m/s)</label>
+        <input type="number" name="v" step="0.01" value="0.20">
+      </div>
+      <div class="row">
+        <label>w (rad/s)</label>
+        <input type="number" name="w" step="0.01" value="0.00">
+      </div>
+      <div class="row">
+        <label>Time (s)</label>
+        <input type="number" name="t_direct" step="0.1" min="0" value="0.5">
+      </div>
+
+      <button type="submit" name="cmd" value="direct" class="primary">Send</button>
+      <button type="submit" name="cmd" value="stop" class="danger">Stop</button>
+    </div>
+</form>
+</div>
+
+<!-- JOB FORM -->
+<div class="card">
+<div class="section-title">Queue New Job</div>
+
+<form method="post" action="/submit">
+
+<label>Job ID</label>
+<input name="job_id" value=""/>
+<div class="hint">Example: J001</div>
+
+<label>Destination</label>
+<input name="destination" value=""/>
+<div class="hint">Example: Bin_A3</div>
+
+<label>Items (Part,Qty per line)</label>
+<textarea name="items" rows="5"></textarea>
+<div class="hint">Example: 10k resistor,50</div>
+
+<label>Note (optional)</label>
+<input name="note"/>
+
+<label>Created By</label>
+<input name="created_by" value=""/>
+<div class="hint">Example: labtech_sarah</div>
+
+<button class="primary" type="submit">Queue Job</button>
+
+</form>
+</div>
+
+<!-- QUEUE / ROBOT ACTIONS -->
+<div class="card">
+<div class="section-title">Robot Actions</div>
+
+
+<a class="btn secondary" href="/queue">View Job Queue</a>
+
+<form method="post" action="/api/robot/claim_next">
+<button class="warning">Claim Next Job</button>
+</form>
+</div>
+
+<!-- ADMIN -->
+<div class="card">
+<div class="section-title">Admin</div>
+
+<form method="post" action="/api/admin/archive_db"
+onsubmit="return confirm('Archive database and clear queue?');">
+<button class="danger">Archive Database</button>
+</form>
+</div>
+
+<p class="hint">
+MQTT topic: <code>{{ topic_job }}</code>
+</p>
+
+</body>
+
+<script>
+  const modeField = document.getElementById("modeField");
+  const btns = document.querySelectorAll(".seg-btn");
+  const panelController = document.getElementById("panel-controller");
+  const panelDirect = document.getElementById("panel-direct");
+
+  btns.forEach(b => {
+    b.addEventListener("click", () => {
+      btns.forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+
+      const mode = b.dataset.mode;
+      modeField.value = mode;
+
+      if (mode === "controller") {
+        panelController.classList.remove("hidden");
+        panelDirect.classList.add("hidden");
+      } else {
+        panelDirect.classList.remove("hidden");
+        panelController.classList.add("hidden");
+      }
+    });
+  });
+</script>
+
+</html>

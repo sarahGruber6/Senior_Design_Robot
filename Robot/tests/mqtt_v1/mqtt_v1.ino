@@ -1,14 +1,13 @@
 #include <WiFiS3.h>
 #include <ArduinoMqttClient.h>
+#include <config.h>
+#ifdef __has_include
+  #if __has_include("config_local.h")
+    #include "config_local.h"
+  #endif
+#endif
 
-//const char ssid[] = "utexas-iot";
-//const char pass[] = "pass";
-const char ssid[] = "ItHurtsWhenIP";
-const char pass[] = "pass";
 const byte mac[] = {0x10, 0x51, 0xDB, 0x37, 0x4F, 0x14};  // MAC address for utexas iot
-
-const char broker[] = "broker";
-const int port = port;
 
 const char topic_job[]  = "robot/r1/cmd/job";
 const char topic_done[] = "robot/r1/evt/done";

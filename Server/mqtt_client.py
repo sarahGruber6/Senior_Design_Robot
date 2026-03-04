@@ -5,7 +5,7 @@ import os
 import socket
 import time
 
-from .config import MQTT_HOST, MQTT_PORT, TOPIC_JOB, TOPIC_DONE, TOPIC_TELEMETRY
+from .config import MQTT_HOST, MQTT_PORT, TOPIC_JOB, TOPIC_TWIST, TOPIC_GOAL, TOPIC_STOP, TOPIC_DONE, TOPIC_TELEMETRY, TOPIC_LIDAR
 from .db import mark_done
 
 STATE = {
@@ -19,6 +19,8 @@ def now_iso():
 
 class MqttBus:
     def __init__(self):
+        self._seq = 0
+
         self.client = mqtt.Client(client_id="job_publisher_api")
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -32,6 +34,13 @@ class MqttBus:
         msg = json.dumps(payload, separators=(",", ":"))
         self.client.publish(TOPIC_JOB, msg, qos=1, retain=True)
         STATE["last_published_job"] = payload
+
+    def publish_twist(self, v: float, w: float, ttl_ms: int, mode: str):
+        self._seq += 1
+        payload = {"mode": mode, "seq": self._seq, "v": v, "w": w, "ttl_ms": ttl_ms}
+        msg = json.dumps(payload, separators=(",",":"))
+        self.client.publish(TOPIC_TWIST, msg, qos=1, retain=False)
+        return payload
 
     def clear_retained_job(self):
         self.client.publish(TOPIC_JOB, payload=b"", qos=1, retain=True)

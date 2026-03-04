@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import json
 
 from .db import enqueue_job, list_jobs
-from .config import ROBOT_ID, TOPIC_JOB
+from .config import ROBOT_ID, TOPIC_JOB, TOPIC_TWIST
 
 pages = Blueprint("pages", __name__)
 
@@ -13,6 +13,10 @@ def now_iso():
 @pages.get("/")
 def index():
     return render_template("index.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB)
+
+@pages.get("/admin")
+def admin_page():
+    return render_template("admin_page.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB, topic_twist=TOPIC_TWIST)
  
 @pages.post("/submit")
 def submit_form():
