@@ -12,11 +12,32 @@ def now_iso():
 
 @pages.get("/")
 def index():
-    return render_template("index.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB)
+    jobs = list_jobs(limit=1)  # newest job
+    next_num = 1
+
+    if jobs:
+        last = jobs[0].get("job_id", "")
+        # format like "J001", "J12", etc
+        if isinstance(last, str) and last.upper().startswith("J"):
+            try:
+                next_num = int(last[1:]) + 1
+            except ValueError:
+                next_num = 1
+
+    next_job_id = f"J{next_num:03d}" if next_num > 0 else "J001"
+    return render_template("index.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB, next_job_id=next_job_id,)
 
 @pages.get("/admin")
 def admin_page():
-    return render_template("admin_page.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB, topic_twist=TOPIC_TWIST)
+    status_filter = request.args.get("status", "").strip().lower()
+    jobs = list_jobs()
+
+    active_job = next((j for j in jobs if j.get("status") == "active"), None)
+
+    if status_filter in {"queued", "active", "done"}:
+        jobs = [j for j in jobs if j.get("status") == status_filter]
+
+    return render_template("admin_page.html", robot_id=ROBOT_ID, topic_job=TOPIC_JOB, topic_twist=TOPIC_TWIST, jobs=jobs, active_job=active_job, status_filter=(status_filter or "all"))
  
 @pages.post("/submit")
 def submit_form():

@@ -70,10 +70,24 @@ def bind_api(bus: MqttBus):
 
         nxt = claim_next_job()
         if not nxt:
-            return jsonify({"ok": False, "message": "No queued jobs"})
+            return jsonify({"ok": False, "message": "No queued jobs"}), 400
 
         bus.publish_job(nxt)
         return jsonify({"ok": True, "message": "Claimed next job", "claimed": nxt})
+    
+    @api.post("/api/robot/finish_active")
+    def finish_active():
+        active = get_active_job()
+        if not active:
+            return jsonify({"ok": False, "error": "No active job"}), 400
+        job_id = active.get("job_id", "").strip()
+        if not job_id:
+            return jsonify({"ok": False, "error": "Active job missing job_id"}), 500
+        
+        bus.publish_done(job_id, clear_job=True)
+        mark_done(job_id)
+        return jsonify({"ok": True, "job_id": job_id})
+
 
     @api.post("/api/robot/done")
     def robot_done():

@@ -1,17 +1,22 @@
 #include <WiFiS3.h>
 #include <ArduinoMqttClient.h>
+#include <ArduinoJson.h>
 
-//const char ssid[] = "utexas-iot";
-//const char pass[] = "85635812833605867719";
-const char ssid[] = "ItHurtsWhenIP";
-const char pass[] = "DiaryOfLain";
+#include <config.h>
+#ifdef __has_include
+  #if __has_include("config_local.h")
+    #include "config_local.h"
+  #endif
+#endif
+
+#include <CytronMotorDriver.h>
+
 const byte mac[] = {0x10, 0x51, 0xDB, 0x37, 0x4F, 0x14};  // MAC address for utexas iot
 
-const char broker[] = "switchback.proxy.rlwy.net";
-const int port = 47996;
-
-const char topic_twist[]  = "robot/r1/cmd/twist";
+// -------- jobs + MQTT ---------
+const char topic_job[]  = "robot/r1/cmd/job";
 const char topic_done[] = "robot/r1/evt/done";
+const char topic_twist[] = "robot/r1/cmd/twist";
 
 WiFiClient net;
 MqttClient mqtt(net);

@@ -1,130 +1,330 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Robot Job Publisher</title>
+  <meta charset="utf-8"/>
+  <title>Robot Job Publisher</title>
 
-<style>
-body{
-  font-family: system-ui, Arial;
-  margin: 30px auto;
-  max-width: 900px;
-  background:#f4f6f8;
-}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-h2{ margin-bottom:20px; }
+  <!-- dark mode toggle -->
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
 
-.card{
-  background:white;
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.06);
-  margin-bottom:20px;
-}
-
-.section-title{
-  font-size:16px;
-  font-weight:700;
-  margin-bottom:10px;
-}
-
-label{
-  display:block;
-  margin-top:12px;
-  font-weight:600;
-}
-
-input, textarea{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  font-size:14px;
-}
-
-button{
-  padding:12px 18px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
-  cursor:pointer;
-  margin-top:12px;
-}
-
-.primary{ background:#1976d2; color:white; }
-.secondary{ background:#e3e8ef; }
-.warning{ background:#ff9800; color:white; }
-.danger{ background:#e53935; color:white; }
-
-.actions button{ margin-right:10px; }
-
-.hint{
-  color:#666;
-  font-size:13px;
-  margin-top:6px;
-}
-</style>
 </head>
 
 <body>
+  <div class="topbar">
+    <h2 class="title">Robot Job Publisher</h2>
+    <button id="themeToggle" class="theme-toggle" type="button">🌙 Dark</button>
+  </div>
 
-<h2>Robot Job Publisher — Robot {{ robot_id }}</h2>
+  <div class="wrap">
+    <div class="top">
+      <h2 class="title">Robot {{ robot_id }}</h2>
+      <div class="actions">
+        <a class="btn secondary" href="/queue">View Queue</a>
+        <a class="btn secondary" href="/api/jobs">View JSON</a>
+        <a class="btn" href="/admin">Admin</a>
+      </div>
+    </div>
 
-<!-- JOB FORM -->
-<div class="card">
-<div class="section-title">Queue New Job</div>
+    <!-- JOB FORM -->
+    <div class="card">
+      <div class="section-title">Queue New Job</div>
 
-<form method="post" action="/submit">
+      <form id="queueForm" onsubmit="return false;">
 
-<label>Job ID</label>
-<input name="job_id" value=""/>
-<div class="hint">Example: J001</div>
+        <label>Job ID <span class="req">*</span></label>
+        <input name="job_id" value="{{ next_job_id or 'J001'}}" readonly />
 
-<label>Destination</label>
-<input name="destination" value=""/>
-<div class="hint">Example: Bin_A3</div>
+        <label>Destination <span class="req">*</span></label>
+        <select name="destination" required>
+          <option value="" selected disabled>Select a destination…</option>
+          <option value="dock">dock</option>
+          <option value="table">table</option>
+        </select>
 
-<label>Items (Part,Qty per line)</label>
-<textarea name="items" rows="5"></textarea>
-<div class="hint">Example: 10k resistor,50</div>
+        <label>Items <span class="req">*</span></label>
+        <div class="items" id="itemsWrap"></div>
 
-<label>Note (optional)</label>
-<input name="note"/>
+        <div class="actions" style="margin-top:10px;">
+          <button class="secondary" type="button" onclick="addItemRow()">+ Add item</button>
+        </div>
 
-<label>Created By</label>
-<input name="created_by" value=""/>
-<div class="hint">Example: labtech_sarah</div>
+        <!-- Note -->
+        <label>Note (optional)</label>
+        <input name="note" placeholder="Anything helpful for the runner…"/>
 
-<button class="primary" type="submit">Queue Job</button>
+        <!-- Created By -->
+        <label>Created By <span class="req">*</span></label>
+        <input name="created_by" value="" placeholder="labtech_sarah" required />
 
-</form>
-</div>
+        <div class="actions">
+          <button class="primary" type="button" onclick="queueJob()">Queue Job</button>
+          <button class="secondary" type="reset" onclick="resetItemsUI()">Clear</button>
+        </div>
 
-<!-- QUEUE / ROBOT ACTIONS -->
-<div class="card">
-<div class="section-title">Robot Actions</div>
+        <p class="hint" style="margin-top:12px;">
+          MQTT topic: <code>{{ topic_job }}</code>
+        </p>
 
+      </form>
+    </div>
 
-<a class="btn secondary" href="/queue">
-  <button class="warning">View Job Queue</button>
-</a>
+    <!-- QUEUE / ROBOT ACTIONS -->
+    <div class="card">
+    <div class="section-title">Robot Actions</div>
 
-<form method="post" action="/api/robot/claim_next">
-<button class="warning">Claim Next Job</button>
-</form>
-</div>
+    <div class="hint" style="margin-bottom:8px;">
+      Use these to test the robot publishing/subscribing flow.
+    </div>
 
-<!-- ADMIN -->
-<div class="card">
-<div class="section-title">Admin</div>
-
-<a class="btn secondary" href="/admin">
-  <button class="danger">Admin Page</button>
-</a>
-
-<p class="hint">
-MQTT topic: <code>{{ topic_job }}</code>
-</p>
-
+    <div class="actions">
+      <button class="warning" type="button" onclick="apiPost('/api/robot/claim_next')">
+        Claim Next Job
+      </button>
+      <button class="warning" type="button" onclick="apiPost('/api/robot/finish_active')">
+        Finish Active Job
+      </button>
+    </div>
+    <!-- for button json responses -->
+    <div id="apiModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div id="apiModalTitle" class="modal-title">API Response</div>
+            <div id="apiModalSubtitle" class="modal-subtitle muted"></div>
+          </div>
+          <button type="button" class="modal-close" onclick="closeApiModal()">✕</button>
+        </div>
+        <pre id="apiModalBody" class="modal-pre">{}</pre>
+        <div class="modal-actions">
+          <button type="button" class="secondary" onclick="copyApiModal()">Copy JSON</button>
+          <button type="button" class="primary" onclick="closeApiModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
+
+<!-- dark mode toggling/saving -->
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById("themeToggle");
+    if (!btn) return;
+
+    function setTheme(t) {
+      root.dataset.theme = t;
+      try { localStorage.setItem("theme", t); } catch(e) {}
+      btn.textContent = (t === "dark") ? "☀️ Light" : "🌙 Dark";
+      btn.setAttribute("aria-pressed", t === "dark");
+    }
+
+    const current = root.dataset.theme || "light";
+    setTheme(current);
+
+    btn.addEventListener("click", () => {
+      setTheme(root.dataset.theme === "dark" ? "light" : "dark");
+    });
+  })();
+</script>
+
+<!-- api button script -->
+<script>
+  async function apiPost(url, opts = {}) {
+    const subtitle = `${opts.method || "POST"} ${url}`;
+    openApiModal("Working…", subtitle, "{\n  \"ok\": false,\n  \"loading\": true\n}");
+
+    try {
+      if(opts.body){
+        opts.headers = {"Content-Type": "application/json"};
+      }
+      const res = await fetch(url, {
+        method: opts.method || "POST",
+        headers: opts.body ? { "Content-Type": "application/json" } : undefined,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { raw: text }; }
+
+      const title = res.ok ? "Success" : `Error (${res.status})`;
+      openApiModal(title, subtitle, JSON.stringify(data, null, 2));
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      openApiModal("Network error", subtitle, JSON.stringify({ error: String(err) }, null, 2));
+      return { ok: false, status: 0, data: { error: String(err) } };
+    }
+  }
+  async function apiGet(url) {
+    const subtitle = `GET ${url}`;
+    openApiModal("Working…", subtitle, "{\n  \"ok\": false,\n  \"loading\": true\n}");
+
+    try {
+      const res = await fetch(url, { method: "GET" });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { raw: text }; }
+
+      const title = res.ok ? "Success" : `Error (${res.status})`;
+      openApiModal(title, subtitle, JSON.stringify(data, null, 2));
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      openApiModal("Network error", subtitle, JSON.stringify({ error: String(err) }, null, 2));
+      return { ok: false, status: 0, data: { error: String(err) } };
+    }
+  }
+  /* -- queue job button script -- */
+  const itemsWrap = document.getElementById("itemsWrap");
+
+  function addItemRow(partVal = "", qtyVal = 1) {
+    const row = document.createElement("div");
+    row.className = "item-row";
+
+    row.innerHTML = `
+      <input type="text" name="item_part" placeholder="Item (e.g., 10k resistor)" value="${escapeHtml(partVal)}" required>
+      <input type="number" name="item_qty" min="1" step="1" value="${qtyVal}" required>
+      <button type="button" class="mini" aria-label="Remove item">✕</button>
+    `;
+
+    row.querySelector("button").addEventListener("click", () => {
+      row.remove();
+    });
+
+    itemsWrap.appendChild(row);
+  }
+
+  function resetItemsUI() {
+    // Clear and restore one default rows
+    itemsWrap.innerHTML = "";
+    addItemRow("", 1);
+  }
+
+  // small helper so quotes don’t break HTML
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  async function queueJob() {
+    const form = document.getElementById("queueForm");
+    const fd = new FormData(form);
+
+    const job_id = (fd.get("job_id") || "").trim();
+    const destination = (fd.get("destination") || "").trim();
+    const note = (fd.get("note") || "").trim();
+    const created_by = (fd.get("created_by") || "").trim();
+
+    // Gather items from dynamic rows
+    const parts = form.querySelectorAll('input[name="item_part"]');
+    const qtys  = form.querySelectorAll('input[name="item_qty"]');
+
+    const items = [];
+    for (let i = 0; i < parts.length; i++) {
+      const part = (parts[i].value || "").trim();
+      const qty = parseInt(qtys[i].value || "0", 10);
+
+      if (!part) continue;
+      if (!Number.isFinite(qty) || qty <= 0) {
+        openApiModal("Error", "Queue Job", JSON.stringify({ ok:false, error:`Bad qty for item "${part}"` }, null, 2));
+        return;
+      }
+      items.push({ part, qty });
+    }
+
+    // Required checks
+    if (!job_id) {
+      openApiModal("Error", "Queue Job", JSON.stringify({ ok:false, error:"Missing Job ID" }, null, 2));
+      return;
+    }
+    if (!destination) {
+      openApiModal("Error", "Queue Job", JSON.stringify({ ok:false, error:"Destination is required" }, null, 2));
+      return;
+    }
+    if (items.length === 0) {
+      openApiModal("Error", "Queue Job", JSON.stringify({ ok:false, error:"At least one item is required" }, null, 2));
+      return;
+    }
+    if (!created_by) {
+      openApiModal("Error", "Queue Job", JSON.stringify({ ok:false, error:"Created By is required" }, null, 2));
+      return;
+    }
+
+    const payload = { job_id, destination, items, note, created_by };
+
+    const btn = form.querySelector("button.primary");
+    const old = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "Queueing…"; }
+
+    const res = await apiPost("/api/jobs", { method: "POST", body: payload });
+
+    if (btn) { btn.disabled = false; btn.textContent = old || "Queue Job"; }
+
+    if (res.ok) {
+      form.reset();
+      // Reset items rows + also refresh the auto job id if you want (see note below)
+      resetItemsUI();
+      // Optional: bump job ID on success
+      bumpJobIdField();
+    }
+  }
+
+  function bumpJobIdField() {
+    const jobField = document.querySelector('input[name="job_id"]');
+    if (!jobField) return;
+
+    // J### -> increment
+    const m = /^J(\d+)$/.exec(jobField.value.trim().toUpperCase());
+    if (!m) return;
+    const n = parseInt(m[1], 10);
+    if (!Number.isFinite(n)) return;
+    jobField.value = "J" + String(n + 1).padStart(3, "0");
+  }
+
+  // Initialize two default item rows on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    resetItemsUI();
+  });
+
+  function openApiModal(title, subtitle, body) {
+    document.getElementById("apiModalTitle").textContent = title;
+    document.getElementById("apiModalSubtitle").textContent = subtitle || "";
+    document.getElementById("apiModalBody").textContent = body || "{}";
+    document.getElementById("apiModal").classList.remove("hidden");
+  }
+
+  function closeApiModal() {
+    document.getElementById("apiModal").classList.add("hidden");
+  }
+
+  async function copyApiModal() {
+    const txt = document.getElementById("apiModalBody").textContent;
+    try { await navigator.clipboard.writeText(txt); } catch(e) {}
+  }
+
+  // close modal on background 
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("apiModal");
+    if (!modal.classList.contains("hidden") && e.target === modal) closeApiModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeApiModal();
+  });
+</script>
+
 </html>

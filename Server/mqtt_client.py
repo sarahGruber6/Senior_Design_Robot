@@ -41,6 +41,30 @@ class MqttBus:
         msg = json.dumps(payload, separators=(",",":"))
         self.client.publish(TOPIC_TWIST, msg, qos=1, retain=False)
         return payload
+    
+    def publish_done(self, job_id: str, clear_job: bool = True):
+        job_id = (job_id or "").strip()
+        if not job_id:
+            raise ValueError("publish_done requires non-empty job_id")
+
+        payload = {"job_id": job_id, "at": now_iso(), "source": "server"}
+        msg = json.dumps(payload, separators=(",", ":"))
+
+        info = self.client.publish(TOPIC_DONE, msg, qos=1, retain=False)
+
+        # Record locally for /status UI
+        STATE["last_done"] = {"job_id": job_id, "raw": msg, "at": now_iso()}
+
+        # Optional: clear retained job immediately
+        if clear_job:
+            self.clear_retained_job()
+
+        return{
+            "job_id": job_id,
+            "published": True,
+            "rc": getattr(info, "rc", None),
+            "cleared_job": clear_job,
+        }
 
     def clear_retained_job(self):
         self.client.publish(TOPIC_JOB, payload=b"", qos=1, retain=True)

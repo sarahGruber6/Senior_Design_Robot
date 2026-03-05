@@ -1,137 +1,213 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>Robot Admin Page</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8"/>
+  <title>Robot Admin</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <!-- dark mode toggle -->
+  <script>
+    (function () {
+      try {
+        const saved = localStorage.getItem("theme");
+        if (saved) document.documentElement.dataset.theme = saved;
+      } catch (e) {}
+    })();
+  </script>
+
 </head>
 
 <body>
-<h2>Admin Page</h2>
-
-<!-- TELEMETRY -->
-<div class="card">
-<div class="section-title">Robot Info/Telemetry</div>
-
-<p>Robot ID: {{ robot_id }} </p>
-<p>Job Active: 
-    {% if jobs | selectattr("status", "equalto", "active") | list | length > 0 %}
-    True
-    {% else %}
-    False
-    {% endif %}
-</p>
-
-</div>
-
-<!-- MANUAL COMMANDS -->
-<div class="card">
-<div class="section-title">Manual Commands</div>
-
-<!-- mode select for form -->
- <div class="segmented" role="tablist" aria-label="Drive mode">
-    <button type="button" class="seg-btn active" data-mode="controller">Controller</button>
-    <button type="button" class="seg-btn" data-mode="direct">Direct</button>
+  <div class="topbar">
+    <h2 class="title">Robot Job Publisher</h2>
+    <button id="themeToggle" class="theme-toggle" type="button">🌙 Dark</button>
   </div>
-
-<form method="post" action="/manual_command">
-    <input type="hidden" name="mode" id="modeField" value="controller">
-     <!-- CONTROLLER MODE -->
-    <div id="panel-controller" class="panel">
-      <div class="controller-grid">
-        <button type="submit" name="cmd" value="fwd" class="ctrl">↑</button>
-        <button type="submit" name="cmd" value="left" class="ctrl">←</button>
-        <button type="submit" name="cmd" value="stop" class="ctrl stop">■</button>
-        <button type="submit" name="cmd" value="right" class="ctrl">→</button>
-        <button type="submit" name="cmd" value="back" class="ctrl">↓</button>
+    
+  <div class="wrap">
+    <div class="top">
+      <h2 class="title">Admin</h2>
+      <div class="actions">
+        <a class="btn secondary" href="/">Home</a>
+        <a class="btn secondary" href="/queue">Queue</a>
+        <a class="btn secondary" href="/status">Status (JSON)</a>
       </div>
-
-      <div class="row">
-        <label>Time (s)</label>
-        <input type="number" name="t_controller" step="0.1" min="0" value="0.5">
-      </div>
-      <small class="hint">Press a direction to send a command for the specified time.</small>
     </div>
 
-    <!-- DIRECT MODE -->
-    <div id="panel-direct" class="panel hidden">
-      <div class="row">
-        <label>v (m/s)</label>
-        <input type="number" name="v" step="0.01" value="0.20">
-      </div>
-      <div class="row">
-        <label>w (rad/s)</label>
-        <input type="number" name="w" step="0.01" value="0.00">
-      </div>
-      <div class="row">
-        <label>Time (s)</label>
-        <input type="number" name="t_direct" step="0.1" min="0" value="0.5">
-      </div>
+    <!-- TELEMETRY -->
+    <div class="card">
+      <div class="section-title">Robot Status</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Robot ID</div>
+          <div class="stat-value"><code>{{ robot_id }}</code></div>
+        </div>
 
-      <button type="submit" name="cmd" value="direct" class="primary">Send</button>
-      <button type="submit" name="cmd" value="stop" class="danger">Stop</button>
+        <div class="stat">
+          <div class="stat-label">MQTT Job Topic</div>
+          <div class="stat-value"><code>{{ topic_job }}</code></div>
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">Active Job</div>
+          {% if active_job %}
+            <div class="stat-value">
+              <span class="badge active">{{ active_job.job_id }} → {{ active_job.destination }}</span>
+            </div>
+          {% else %}
+            <div class="stat-value">
+              <span class="badge queued">none</span>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="stat">
+          <div class="stat-label">Last Telemetry</div>
+          <div class="stat-value muted">
+            {% if state and state.get("last_telemetry") %}
+              {{ state.get("last_telemetry").get("at","") }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px;">
+        Tip: keep this page open while testing. Use “Status (JSON)” to debug MQTT traffic quickly.
+      </div>
     </div>
-</form>
-</div>
 
-<!-- JOB FORM -->
-<div class="card">
-<div class="section-title">Queue New Job</div>
+    <!-- MANUAL COMMANDS -->
+    <div class="card">
+    <div class="section-title">Manual Commands</div>
 
-<form method="post" action="/submit">
+    <!-- mode select for form -->
+    <div class="segmented" role="tablist" aria-label="Drive mode">
+        <button type="button" class="seg-btn active" data-mode="controller">Controller</button>
+        <button type="button" class="seg-btn" data-mode="direct">Direct</button>
+      </div>
 
-<label>Job ID</label>
-<input name="job_id" value=""/>
-<div class="hint">Example: J001</div>
+    <form id = "manualForm">
+        <input type="hidden" name="mode" id="modeField" value="controller">
+        <!-- CONTROLLER MODE -->
+        <div id="panel-controller" class="panel">
+          <div class="controller-grid">
+            <button type="submit" name="cmd" value="fwd" class="ctrl">↑</button>
+            <button type="submit" name="cmd" value="left" class="ctrl">←</button>
+            <button type="submit" name="cmd" value="stop" class="ctrl stop">■</button>
+            <button type="submit" name="cmd" value="right" class="ctrl">→</button>
+            <button type="submit" name="cmd" value="back" class="ctrl">↓</button>
+          </div>
 
-<label>Destination</label>
-<input name="destination" value=""/>
-<div class="hint">Example: Bin_A3</div>
+          <div class="row">
+            <label>Time (s)</label>
+            <input type="number" name="t_controller" step="0.1" min="0" value="0.5">
+          </div>
+          <div class="hint">Press a direction to send a command for the specified time.</div>
 
-<label>Items (Part,Qty per line)</label>
-<textarea name="items" rows="5"></textarea>
-<div class="hint">Example: 10k resistor,50</div>
+          <div class="actions" style="margin-top:10px;">
+            <button type="submit" name="cmd" value="stop" class="danger">Emergency Stop</button>
+          </div>
+        </div>
 
-<label>Note (optional)</label>
-<input name="note"/>
+        <!-- DIRECT MODE -->
+        <div id="panel-direct" class="panel hidden">
+          <div class="row">
+            <label>v (m/s)</label>
+            <input type="number" name="v" step="0.01" value="0.20">
+          </div>
+          <div class="row">
+            <label>w (rad/s)</label>
+            <input type="number" name="w" step="0.01" value="0.00">
+          </div>
+          <div class="row">
+            <label>Time (s)</label>
+            <input type="number" name="t_direct" step="0.1" min="0" value="0.5">
+          </div>
 
-<label>Created By</label>
-<input name="created_by" value=""/>
-<div class="hint">Example: labtech_sarah</div>
+          <button type="submit" name="cmd" value="direct" class="primary">Send</button>
+          <button type="submit" name="cmd" value="stop" class="danger">Stop</button>
+        </div>
+    </form>
+    </div>
 
-<button class="primary" type="submit">Queue Job</button>
+    <!-- JOB / QUEUE OPS -->
+    <div class="card">
+      <div class="section-title">Jobs</div>
 
-</form>
-</div>
+      <div class="actions">
+        <a class="btn secondary" href="/queue">View Job Queue</a>
 
-<!-- QUEUE / ROBOT ACTIONS -->
-<div class="card">
-<div class="section-title">Robot Actions</div>
+        <button class="warning" type="button" onclick="apiPost('/api/robot/claim_next')">
+          Claim Next Job
+        </button>
+        <button class="warning" type="button" onclick="apiPost('/api/robot/finish_active')">
+          Finish Active Job
+        </button>
+        
+      </div>
 
+      <div class="hint" style="margin-top:10px;">
+        “Finish Active Job” is a manual override for testing; it will publish DONE and mark it complete.
+      </div>
+    </div>
 
-<a class="btn secondary" href="/queue">View Job Queue</a>
+    <!-- ADMIN / DANGER ZONE -->
+    <div class="card">
+      <div class="section-title">Admin</div>
 
-<form method="post" action="/api/robot/claim_next">
-<button class="warning">Claim Next Job</button>
-</form>
-</div>
+      <div class="hint" style="margin-bottom:10px;">
+        Danger zone! These actions can clear history or disrupt testing.
+      </div>
 
-<!-- ADMIN -->
-<div class="card">
-<div class="section-title">Admin</div>
-
-<form method="post" action="/api/admin/archive_db"
-onsubmit="return confirm('Archive database and clear queue?');">
-<button class="danger">Archive Database</button>
-</form>
-</div>
-
-<p class="hint">
-MQTT topic: <code>{{ topic_job }}</code>
-</p>
-
+      <button class="danger" type="button" onclick="if(confirm('Archive database and clear queue?')) apiPost('/api/admin/archive_db')">
+        Archive Database
+      </button>
+    </div>
+    <!-- for button json responses -->
+    <div id="apiModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div id="apiModalTitle" class="modal-title">API Response</div>
+            <div id="apiModalSubtitle" class="modal-subtitle muted"></div>
+          </div>
+          <button type="button" class="modal-close" onclick="closeApiModal()">✕</button>
+        </div>
+        <pre id="apiModalBody" class="modal-pre">{}</pre>
+        <div class="modal-actions">
+          <button type="button" class="secondary" onclick="copyApiModal()">Copy JSON</button>
+          <button type="button" class="primary" onclick="closeApiModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 
+<!-- dark mode toggling/saving -->
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById("themeToggle");
+    if (!btn) return;
+
+    function setTheme(t) {
+      root.dataset.theme = t;
+      try { localStorage.setItem("theme", t); } catch(e) {}
+      btn.textContent = (t === "dark") ? "☀️ Light" : "🌙 Dark";
+      btn.setAttribute("aria-pressed", t === "dark");
+    }
+
+    const current = root.dataset.theme || "light";
+    setTheme(current);
+
+    btn.addEventListener("click", () => {
+      setTheme(root.dataset.theme === "dark" ? "light" : "dark");
+    });
+  })();
+</script>
+
+<!-- controller form toggling script -->
 <script>
   const modeField = document.getElementById("modeField");
   const btns = document.querySelectorAll(".seg-btn");
@@ -154,6 +230,124 @@ MQTT topic: <code>{{ topic_job }}</code>
         panelController.classList.add("hidden");
       }
     });
+  });
+</script>
+
+<!-- api button script -->
+<script>
+  async function apiPost(url, opts = {}) {
+    const subtitle = `${opts.method || "POST"} ${url}`;
+    openApiModal("Working…", subtitle, "{\n  \"ok\": false,\n  \"loading\": true\n}");
+
+    try {
+      const res = await fetch(url, {
+        method: opts.method || "POST",
+        headers: { "Content-Type": "application/json" },
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { raw: text }; }
+
+      const title = res.ok ? "Success" : `Error (${res.status})`;
+      openApiModal(title, subtitle, JSON.stringify(data, null, 2));
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      openApiModal("Network error", subtitle, JSON.stringify({ error: String(err) }, null, 2));
+      return { ok: false, status: 0, data: { error: String(err) } };
+    }
+  }
+  async function apiGet(url) {
+    const subtitle = `GET ${url}`;
+    openApiModal("Working…", subtitle, "{\n  \"ok\": false,\n  \"loading\": true\n}");
+
+    try {
+      const res = await fetch(url, { method: "GET" });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { raw: text }; }
+
+      const title = res.ok ? "Success" : `Error (${res.status})`;
+      openApiModal(title, subtitle, JSON.stringify(data, null, 2));
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      openApiModal("Network error", subtitle, JSON.stringify({ error: String(err) }, null, 2));
+      return { ok: false, status: 0, data: { error: String(err) } };
+    }
+  }
+
+  // manual command sending
+  document.getElementById("manualForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const form = e.target;
+    const mode = document.getElementById("modeField").value;
+    const cmd = e.submitter.value;
+
+    let payload = {};
+
+    if (mode === "controller") {
+      const t = parseFloat(form.t_controller.value || "0.5");
+      const ttl_ms = Math.round(t * 1000);
+
+      const actionMap = {
+        fwd: "forward",
+        back: "backward",
+        left: "left",
+        right: "right",
+        stop: "stop"
+      };
+
+      payload = {
+        action: actionMap[cmd] || "stop",
+        ttl_ms: ttl_ms
+      };
+
+    } else {
+      // direct mode
+      const t = parseFloat(form.t_direct.value || "0.5");
+
+      if (cmd === "stop") {
+        payload = { action: "stop" };
+      } else {
+        payload = {
+          v: parseFloat(form.v.value || "0"),
+          w: parseFloat(form.w.value || "0"),
+          ttl_ms: Math.round(t * 1000)
+        };
+      }
+    }
+
+    await apiPost("/api/manual/cmd", { body: payload });
+  });
+
+  function openApiModal(title, subtitle, body) {
+    document.getElementById("apiModalTitle").textContent = title;
+    document.getElementById("apiModalSubtitle").textContent = subtitle || "";
+    document.getElementById("apiModalBody").textContent = body || "{}";
+    document.getElementById("apiModal").classList.remove("hidden");
+  }
+
+  function closeApiModal() {
+    document.getElementById("apiModal").classList.add("hidden");
+  }
+
+  async function copyApiModal() {
+    const txt = document.getElementById("apiModalBody").textContent;
+    try { await navigator.clipboard.writeText(txt); } catch(e) {}
+  }
+
+  // close modal on background click + Esc
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("apiModal");
+    if (!modal.classList.contains("hidden") && e.target === modal) closeApiModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeApiModal();
   });
 </script>
 

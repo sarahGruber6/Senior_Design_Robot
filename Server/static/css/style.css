@@ -1,20 +1,85 @@
+/* --- theme stuff (default is light) --- */
+
+:root{
+  --bg: #f4f6f8;
+  --text: #0f172a;
+  --muted: #667085;
+
+  --card: #ffffff;
+  --border: #d0d5dd;
+  --shadow: 0 4px 10px rgba(0,0,0,0.06);
+
+  --input-bg: #ffffff;
+  --input-text: #0f172a;
+
+  --btn-bg: #ffffff;
+  --btn-text: #0f172a;
+  --btn-border: #c9ced6;
+
+  --seg-active-border: #0f172a;
+
+  --primary: #1976d2;
+  --secondary: #e3e8ef;
+  --warning: #ff9800;
+  --danger: #e53935;
+}
+
+/* dark theme */
+html[data-theme="dark"]{
+  --bg: #0b0f14;
+  --text: #e7eef8;
+  --muted: #a7b0bd;
+
+  --card: #121826;
+  --border: #243043;
+  --shadow: 0 10px 24px rgba(0,0,0,0.35);
+
+  --input-bg: #0f1522;
+  --input-text: #e7eef8;
+
+  --btn-bg: #0f1522;
+  --btn-text: #e7eef8;
+  --btn-border: #2a3850;
+
+  --seg-active-border: #e7eef8;
+}
+
+/* --- base layout + typography --- */
+
 body{
   font-family: system-ui, Arial;
   margin: 30px auto;
   max-width: 900px;
-  background:#f4f6f8;
+  background: var(--bg);
+  color: var(--text);
 }
 
-h2{ margin-bottom:20px; }
+h2{ 
+  margin-bottom:20px; 
+}
 
-button{
-  padding:12px 18px;
-  border:none;
-  border-radius:8px;
-  font-size:14px;
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 16px;
+}
+
+.topbar .title{
+  margin: 0;
+}
+
+.topbar .theme-toggle{
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
   cursor:pointer;
-  margin-top:12px;
 }
+
+/* ------ forms ------ */
 
 label{
   display:block;
@@ -26,22 +91,370 @@ input, textarea{
   width:100%;
   padding:10px;
   border-radius:8px;
-  border:1px solid #ddd;
+  border:1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--input-text);
   font-size:14px;
 }
 
+textarea{
+  min-height: 88px;
+}
+
+.req{
+  color: var(--danger);
+  font-weight: 900;
+  margin-left: 4px;
+}
+
+select{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size:14px;
+}
+
+/* ------ item rows for job queue form ------ */
+
+.items{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top: 6px;
+}
+
+.item-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.item-row input[type="text"]{
+  flex: 1;
+}
+
+.item-row input[type="number"]{
+  width: 120px;
+}
+
+.item-row .mini{
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  cursor:pointer;
+  margin-top: 0;
+}
+
+/* ------ sections + cards ------ */
+
 .card{
-  background:white;
+  background: var(--card);
   padding:20px;
   border-radius:14px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow);
   margin-bottom:20px;
+}
+
+html[data-theme="dark"].card{
+  border-color: rgba(255,255,255,0.05);
 }
 
 .section-title{
   font-size:18px;
   font-weight:700;
   margin-bottom:10px;
+}
+
+/* ------ admin page telemetry stats ------ */
+
+.stats{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+@media (max-width: 720px){
+  .stats{ grid-template-columns: 1fr; }
+}
+
+.stat{
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.45);
+}
+
+html[data-theme="dark"] .stat{
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.stat-label{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.stat-value{
+  font-size: 14px;
+  font-weight: 700;
+}
+
+
+/* ------ api responses from buttons ------ */
+
+.modal.hidden{ display:none; }
+
+.modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 18px;
+  z-index: 50;
+}
+
+.modal-card{
+  width: min(900px, 96vw);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,0.06);
+  overflow:hidden;
+}
+
+html[data-theme="dark"] .modal-card{
+  border-color: rgba(255,255,255,0.08);
+}
+
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+html[data-theme="dark"] .modal-header{
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.modal-title{ font-weight: 800; }
+.modal-subtitle{ font-size: 13px; margin-top: 2px; }
+
+.modal-close{
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  margin-top: 0;
+  padding: 0;
+}
+
+.modal-pre{
+  margin: 0;
+  padding: 14px 16px;
+  max-height: 55vh;
+  overflow:auto;
+  font-size: 13px;
+  background: rgba(0,0,0,0.04);
+}
+
+html[data-theme="dark"] .modal-pre{
+  background: rgba(255,255,255,0.05);
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+html[data-theme="dark"] .modal-actions{
+  border-top-color: rgba(255,255,255,0.08);
+}
+
+/* ------ queue page w table UI ------ */
+
+.wrap{
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.top .title{
+  margin: 0;
+}
+
+/* Link-as-button */
+a.btn{
+  display:inline-block;
+  padding:10px 14px;
+  border-radius:10px;
+  text-decoration:none;
+  border:1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight:600;
+}
+
+a.btn.secondary{
+  background: var(--secondary);
+  color: #111;
+  border-color: transparent;
+}
+
+html[data-theme="dark"] a.btn.secondary{
+  background: rgba(227,232,239,0.12);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.06);
+}
+
+/* Filters row */
+.filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom: 12px;
+}
+
+.chip{
+  display:inline-block;
+  padding:8px 12px;
+  border-radius:999px;
+  text-decoration:none;
+  border:1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-weight:600;
+}
+
+.chip.active{
+  border-color: var(--seg-active-border);
+}
+
+/* Muted text helper */
+.muted{
+  color: var(--muted);
+}
+
+/* Empty state */
+.empty{
+  padding: 10px 0;
+}
+
+/* Table styling */
+table{
+  width:100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead th{
+  text-align:left;
+  padding:10px 10px;
+  border-bottom:1px solid var(--border);
+  color: var(--muted);
+  font-weight:700;
+}
+
+tbody td{
+  vertical-align: top;
+  padding:10px 10px;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+}
+
+html[data-theme="dark"] tbody td{
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+tbody tr:hover{
+  background: rgba(25,118,210,0.06);
+}
+
+html[data-theme="dark"] tbody tr:hover{
+  background: rgba(25,118,210,0.12);
+}
+
+td ul{
+  margin: 0;
+  padding-left: 18px;
+}
+
+code{
+  background: rgba(0,0,0,0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+html[data-theme="dark"] code{
+  background: rgba(255,255,255,0.08);
+}
+
+/* Status badges */
+.badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:999px;
+  font-weight:800;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
+.badge.queued{
+  background: rgba(255,152,0,0.18);
+  color: var(--text);
+  border-color: rgba(255,152,0,0.35);
+}
+.badge.active{
+  background: rgba(25,118,210,0.18);
+  color: var(--text);
+  border-color: rgba(25,118,210,0.35);
+}
+.badge.done{
+  background: rgba(46,125,50,0.18);
+  color: var(--text);
+  border-color: rgba(46,125,50,0.35);
+}
+
+/* --- buttons --- */
+
+button{
+  padding:12px 18px;
+  border:none;
+  border-radius:8px;
+  font-size:14px;
+  cursor:pointer;
+  margin-top:12px;
+  color: var(--btn-text);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+}
+
+/* --- hints --- */
+.hint{
+  color: var(--muted);
+  font-size:13px;
+  margin-top:6px;
 }
 
 /* --- controller style for manual controls --- */
@@ -55,12 +468,13 @@ input, textarea{
 .seg-btn{
     padding:8px 12px;
     border-radius:999px;
-    border:1px solid #ccc;
-    background:#fff;
+    border:1px solid var(--btn-border);
+    background: var(--btn-bg);
     cursor:pointer;
+    margin-top: 0;
 }
 .seg-btn.active{
-    border-color:#000;
+    border-color: var(--seg-active-border);
     font-weight:600;
 }
 
@@ -86,10 +500,12 @@ input, textarea{
 .ctrl{
   height:56px; width:56px;
   border-radius:14px;
-  border:1px solid #ccc;
-  background:#fff;
+  border:1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-text);
   font-size:20px;
   cursor:pointer;
+  margin-top: 0;
 }
 .ctrl.stop{
   font-size:18px;
@@ -104,37 +520,13 @@ input, textarea{
 .row label{
   width: 90px;
   opacity: 0.85;
+  margin-top: 0;
 }
+
 .row input{
   flex:1;
   padding:8px 10px;
-  border:1px solid #ccc;
-  border-radius:10px;
+  border:1px solid var(--border);
+  border-radius: 10px;
 }
 
-.primary{ background:#1976d2; color:white; }
-.secondary{ background:#e3e8ef; }
-.warning{ background:#ff9800; color:white; }
-.danger{ background:#e53935; color:white; }
-
-.actions button{ margin-right:10px; }
-
-.hint{
-  color:#666;
-  font-size:13px;
-  margin-top:6px;
-}
-
-.card{
-  background:white;
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.06);
-  margin-bottom:20px;
-}
-
-.section-title{
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:10px;
-}
