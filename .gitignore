@@ -5,6 +5,8 @@
 # Local configs 
 /Server/config_local.py
 /Robot/config_local.h
+/Robot/tests/manual_motor_testing/config_local.h
+/Robot/tests/mqtt_v1/config_local.h
 
 # Python cache
 /Server/__pycache__/

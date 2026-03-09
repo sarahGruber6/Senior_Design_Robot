@@ -149,8 +149,9 @@ def bind_api(bus: MqttBus):
             v = float(data.get("v", 0.0))
             w = float(data.get("w", 0.0))
         
-        sent = bus.publish_twist(v=v,w=w,ttl_ms=ttl_ms,mode="manual")
-        return jsonify({"ok": True, "sent": sent})
+        result = bus.publish_twist_and_wait_ack(v=v,w=w,ttl_ms=ttl_ms,mode="manual")
+        status = 200 if result.get("ok") else 504
+        return jsonify(result), status
 
     @api.post("/api/admin/archive_db")
     def api_archive():

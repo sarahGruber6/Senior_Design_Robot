@@ -20,6 +20,7 @@ TOPIC_GOAL = f"robot/{ROBOT_ID}/cmd/goal"
 TOPIC_STOP = f"robot/{ROBOT_ID}/cmd/stop"
 
 TOPIC_DONE = f"robot/{ROBOT_ID}/evt/done"
+TOPIC_ACK = f"robot/{ROBOT_ID}/evt/ack"
 
 TOPIC_TELEMETRY = f"robot/{ROBOT_ID}/telemetry"
 TOPIC_LIDAR = f"robot/{ROBOT_ID}/lidar"
