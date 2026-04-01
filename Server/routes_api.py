@@ -130,7 +130,7 @@ def bind_api(bus: MqttBus):
         ttl_ms = int(data.get("ttl_ms",300))
 
         # actions to v,w
-        SPEED = float(data.get("speed", 0.25))  # m/s
+        SPEED = float(data.get("speed", 5))  # m/s
         TURN = float(data.get("turn", 1.2))     # rad/s
 
         if action == "forward":

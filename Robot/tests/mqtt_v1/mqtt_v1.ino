@@ -1,6 +1,6 @@
 #include <WiFiS3.h>
 #include <ArduinoMqttClient.h>
-#include <config.h>
+#include "config.h"
 #ifdef __has_include
   #if __has_include("config_local.h")
     #include "config_local.h"
@@ -24,7 +24,7 @@ void connectWiFi(){
   if(WiFi.status() == WL_CONNECTED) return;
 
   Serial.print("\nConnecting WiFi... ");
-  WiFi.begin(ssid, pass);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
   while (WiFi.localIP() == IPAddress(0,0,0,0)) delay(200);
 
@@ -39,7 +39,7 @@ void connectMQTT(){
   subscribed = false;
 
   Serial.print("Connecting MQTT... ");
-  while (!mqtt.connect(broker, port)) {
+  while (!mqtt.connect(MQTT_HOST, MQTT_PORT)) {
     Serial.print("MQTT connect failed: ");
     Serial.println(mqtt.connectError());
     delay(1000);
@@ -119,14 +119,14 @@ void loop(){
 
   // report
   if (now - lastGapReport >= 1000) {
-    /* // just testing if done publishing works
+     // just testing if done publishing works
     if(flag){
       mqtt.beginMessage(topic_done);
       mqtt.print("{\"job_id\":\"J002\"}");
       mqtt.endMessage();
       flag = 0;
-    }
-    */
+    }else flag = 1;
+    
 
     lastGapReport = now;
     Serial.print("rx/s=");

@@ -3,7 +3,7 @@
 #include <ArduinoMqttClient.h>
 #include <ArduinoJson.h>
 
-#include <config.h>
+#include "config.h"
 #ifdef __has_include
   #if __has_include("config_local.h")
     #include "config_local.h"
@@ -18,6 +18,7 @@ const byte mac[] = {0x10, 0x51, 0xDB, 0x37, 0x4F, 0x14};  // MAC address for ute
 
 const char topic_job[]  = "robot/r1/cmd/job";
 const char topic_done[] = "robot/r1/evt/done";
+const char topic_ack[] = "robot/r1/evt/ack";
 const char topic_twist[] = "robot/r1/cmd/twist";
 
 WiFiClient net;
@@ -25,6 +26,7 @@ MqttClient mqtt(net);
 
 char clientId[] = "Arduino_R1";
 bool subscribed = false;
+String lastCommandId = "";
 
 // --------- motors ---------
 
@@ -48,7 +50,7 @@ void connectWiFi(){
   if(WiFi.status() == WL_CONNECTED) return;
 
   Serial.print("\nConnecting WiFi... ");
-  WiFi.begin(ssid, pass);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
   while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
   while (WiFi.localIP() == IPAddress(0,0,0,0)) delay(200);
 
@@ -63,7 +65,7 @@ void connectMQTT(){
   subscribed = false;
 
   Serial.print("Connecting MQTT... ");
-  while (!mqtt.connect(broker, port)) {
+  while (!mqtt.connect(MQTT_HOST, MQTT_PORT)) {
     Serial.print("MQTT connect failed: ");
     Serial.println(mqtt.connectError());
     delay(1000);
@@ -76,9 +78,9 @@ void subscribeMQTT(){
   if(subscribed) return;
 
   Serial.println("\nSubscribing to:");
-  Serial.println(topic_job);
+  Serial.println(topic_twist);
 
-  mqtt.subscribe(topic_job,1);
+  mqtt.subscribe(topic_twist,1);
   subscribed = true;
 
   Serial.println("...Success!");
@@ -116,15 +118,36 @@ void handleTwistMessage(const char* json, size_t n){
   }
 
   int seq = doc["seq"] | -1;
+  const char* command_id = doc["command_id"] | "";
   float v = doc["v"] | 0.0;
   float w = doc["w"] | 0.0;
   int ttl = doc["ttl_ms"] | 0;
 
-  // ignore repeats and out of order
-  if((seq >= 0 && seq == lastSeq) || (seq >= 0 && seq != seq+1)){
-    return; 
+  // server didnt receive ack, resend and return
+  if(strlen(command_id) > 0 && lastCommandId == String(command_id)){
+    Serial.println("Duplicate ACK sent");
+
+    mqtt.beginMessage(topic_ack);
+    mqtt.print("{\"command_id\":\"");
+    mqtt.print(command_id);
+    mqtt.print("\",\"status\":\"received\"}");
+    mqtt.endMessage();
+    return;
   }
-  lastSeq = seq;
+
+  // accept command and send ack
+  if(strlen(command_id) > 0){
+    lastCommandId = String(command_id);
+    Serial.println("ACK sent");
+
+    mqtt.beginMessage(topic_ack);
+    mqtt.print("{\"command_id\":\"");
+    mqtt.print(command_id);
+    mqtt.print("\",\"seq\":");
+    mqtt.print(seq);
+    mqtt.print(",\"status\":\"received\"}");
+    mqtt.endMessage();
+  }
 
   // convert twist to PWMs
   int base = (int)roundf(K_V * v);
@@ -136,7 +159,7 @@ void handleTwistMessage(const char* json, size_t n){
   setMotors(left,right);
 
   // duration
-  uint32_now = millis();
+  uint32_t now = millis();
   if(ttl <= 0){
     cmdExpiresAtMs = now;
   }else{
@@ -199,10 +222,10 @@ void loop(){
   */
 
   // message drain
-  static uint32_t rxCount = 0;
   int messageSize;
-  while((messageSize = mqtt.parseMessage()) > 0) {
-    String topic = mqtt.messageTopic()
+  while((messageSize = mqtt.parseMessage()) > 0){
+    //Serial.println("message detected yayhyyyyh");
+    String topic = mqtt.messageTopic();
 
     // payload to buffer
     const int MAX = 512;
@@ -211,8 +234,10 @@ void loop(){
     int i = 0;
 
     while(mqtt.available() && i < n){
+      //Serial.print(buf[i]);
       buf[i++] = (char)mqtt.read();
     }
+    //Serial.println("");
     buf[i] = '\0';
 
     // discard extra if payload > MAX
@@ -220,8 +245,9 @@ void loop(){
 
     if(topic == topic_twist){
       handleTwistMessage(buf, i);
+      //Serial.println("twisting detected beep boop");
     }else{
-      // optional debug
+      // debug and will add other stuff later
       // Serial.print("[mqtt] msg on "); Serial.println(topic);
     }
   }

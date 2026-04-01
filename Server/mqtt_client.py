@@ -113,6 +113,10 @@ class MqttBus:
         self.client.publish(TOPIC_JOB, payload=b"", qos=1, retain=True)
 
     def on_connect(self, client, userdata, flags, rc):
+        print("[MQTT] subscribing to:")
+        print("  DONE:", TOPIC_DONE)
+        print("  TELEMETRY:", TOPIC_TELEMETRY)
+        print("  ACK:", TOPIC_ACK)
         if rc == 0:
             print(f"[MQTT] Connected successfully rc={rc}")
             client.subscribe([(TOPIC_DONE, 1), (TOPIC_ACK,1), (TOPIC_TELEMETRY, 0)])
@@ -145,7 +149,7 @@ class MqttBus:
                 data = {"raw": payload_raw}
 
             cmd_id = data.get("command_id")
-            if cmd_id and cmd_id in self._pendings_acks:
+            if cmd_id and cmd_id in self._pending_acks:
                 self._pending_acks[cmd_id] = data
 
             STATE["last_ack"] = {"data": data, "at": now_iso()}

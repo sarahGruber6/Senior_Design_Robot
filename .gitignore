@@ -1,12 +1,20 @@
-# Python virtual environment
+# Python virtual environments
 /Server/.venv/
-/Server/venv/
+/SLAM/.venv/
 
 # Local configs 
 /Server/config_local.py
 /Robot/config_local.h
 /Robot/tests/manual_motor_testing/config_local.h
 /Robot/tests/mqtt_v1/config_local.h
+/Robot/tests/lidar_to_mqtt/config_local.h
+/Robot/v1_0/config_local.h 
+
+# YDLidar SDK
+/Robot/tests/YDLidar/
+
+# testing logs
+/SLAM/code/tests/
 
 # Python cache
 /Server/__pycache__/
