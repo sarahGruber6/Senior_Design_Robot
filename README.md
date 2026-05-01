@@ -7,10 +7,10 @@ An autonomous differential-drive robot that uses a YDLidar G2 for SLAM-based nav
 ```
 ESP32 (Robot)                       Server (Host PC)
 ─────────────────────               ─────────────────────────────────
-LiDAR scan (360 bins)  ──MQTT──▶   SlamService  →  RMHC-SLAM map
-Encoder ticks          ──MQTT──▶   MotionExecutor → A* path planning
-                                   MotorCommander → PD heading control
-Twist command (v, w)   ◀─MQTT──    → publish twist
+LiDAR scan (360 bins)  --MQTT->   SlamService  >  RMHC-SLAM map
+Encoder ticks          --MQTT->   MotionExecutor > A* path planning
+                                   MotorCommander > PD heading control
+Twist command (v, w)   <-MQTT--    > publish twist
 ```
 
 ---
@@ -21,7 +21,7 @@ Twist command (v, w)   ◀─MQTT──    → publish twist
 
 The firmware depends on a custom YDLidar G2 Arduino library. Arduino has no standard dependency file, so install it manually:
 
-1. Open Arduino IDE → **Sketch → Include Library → Add .ZIP Library…**
+1. Open Arduino IDE -> **Sketch -> Include Library -> Add .ZIP Library…**
 2. Download and install from: [sarahGruber6/YDLidarG2_ESP32](https://github.com/sarahGruber6/YDLidarG2_ESP32)
 3. Open `Robot/ESP32/full_integration_v1/full_integration_v1.ino`
 
@@ -61,7 +61,7 @@ The web UI is served at `http://localhost:5000`.
 
 ## Config Variables
 
-There are two config layers — one on the server (Python) and one on the ESP32 (C++). Both use a `_defaults` file checked into git and a `_local` file you create locally for secrets and machine-specific overrides.
+There are two config layers: one on the server (Python), and one on the ESP32 (C++). Both use a `_defaults` file checked into git and a `_local` file you create locally for secrets and machine-specific overrides.
 
 ### Server — `Server/config_defaults.py` (and `Server/config_local.py`)
 
