@@ -25,6 +25,15 @@ def init_db():
             status TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS places (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            x_mm REAL NOT NULL,
+            y_mm REAL NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -94,9 +103,6 @@ def get_active_job() -> Optional[Dict[str, Any]]:
     }
 
 def claim_next_job() -> Optional[Dict[str, Any]]:
-    """
-    Returns next queued job and marks it active (FIFO). Returns None if none queued.
-    """
     conn = get_db()
     row = conn.execute("""
         SELECT * FROM jobs
@@ -133,3 +139,38 @@ def mark_done(job_id: str) -> None:
     conn.execute("UPDATE jobs SET status='done' WHERE job_id=?", (job_id,))
     conn.commit()
     conn.close()
+
+
+def list_places() -> List[Dict[str, Any]]:
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT name, x_mm, y_mm, created_at FROM places ORDER BY name"
+    ).fetchall()
+    conn.close()
+    return [{"name": r["name"], "x_mm": r["x_mm"], "y_mm": r["y_mm"], "created_at": r["created_at"]}
+            for r in rows]
+
+
+def save_place(name: str, x_mm: float, y_mm: float, created_at: str) -> Tuple[bool, Optional[str]]:
+    conn = get_db()
+    try:
+        conn.execute(
+            """INSERT INTO places (name, x_mm, y_mm, created_at) VALUES (?, ?, ?, ?)
+               ON CONFLICT(name) DO UPDATE SET x_mm=excluded.x_mm, y_mm=excluded.y_mm,
+               created_at=excluded.created_at""",
+            (name, x_mm, y_mm, created_at),
+        )
+        conn.commit()
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+    conn.close()
+    return True, None
+
+
+def delete_place(name: str) -> bool:
+    conn = get_db()
+    cur = conn.execute("DELETE FROM places WHERE name=?", (name,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0

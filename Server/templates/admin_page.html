@@ -21,7 +21,7 @@
 <body>
   <div class="topbar">
     <h2 class="title">Robot Job Publisher</h2>
-    <button id="themeToggle" class="theme-toggle" type="button">🌙 Dark</button>
+    <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
   </div>
     
   <div class="wrap">
@@ -194,7 +194,7 @@
     function setTheme(t) {
       root.dataset.theme = t;
       try { localStorage.setItem("theme", t); } catch(e) {}
-      btn.textContent = (t === "dark") ? "☀️ Light" : "🌙 Dark";
+      btn.textContent = (t === "dark") ? "☀️" : "🌙";
       btn.setAttribute("aria-pressed", t === "dark");
     }
 

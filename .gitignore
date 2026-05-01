@@ -7,6 +7,9 @@
 /Robot/tests/manual_motor_testing/config_local.h
 /Robot/tests/mqtt_v1/config_local.h
 /Robot/tests/lidar_to_mqtt/config_local.h
+/Robot/tests/encoder/config_local.h
+/Robot/tests/encoder_and_lidar/config_local.h
+/Robot/tests/
 /Robot/v1_0/config_local.h
 /Server/config_local.py 
 /SLAM/code/config_local.py
@@ -21,3 +24,4 @@
 /Server/__pycache__/
 /SLAM/code/__pycache__/
 /Server/*.pyc
+Robot/Uno_R4/tests/YDLidar/sdk

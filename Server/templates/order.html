@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Order</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('theme');
+                if (saved) document.documentElement.setAttribute('data-theme', saved);
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body>
+    <div class="topbar">
+        <span class="title">Robot Delivery</span>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <a class="btn" href="/admin">Admin</a>
+            <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
+        </div>
+    </div>
+
+    <div class="wrap" style="max-width:600px;">
+        <h2 style="margin-bottom:1rem;">Place an Order</h2>
+
+        <div id="successMsg" class="success-banner" style="display:none;">
+            Order submitted! Job ID: <strong id="successJobId"></strong>
+        </div>
+
+        <form id="orderForm">
+            <div class="card">
+                <div class="section-title">Order Details</div>
+
+                <label for="jobIdField">Job ID</label>
+                <input type="text" id="jobIdField" name="job_id" readonly placeholder="J001">
+
+                <label for="destination">Destination <span class="req">*</span></label>
+                <select id="destination" name="destination" required>
+                    <option value="" disabled selected>Select a destination</option>
+                    <option value="dock_a">Dock A</option>
+                    <option value="dock_b">Dock B</option>
+                    <option value="table_1">Table 1</option>
+                    <option value="table_2">Table 2</option>
+                    <option value="storage">Storage Room</option>
+                </select>
+
+                <label for="createdBy">Your Name <span class="req">*</span></label>
+                <input type="text" id="createdBy" name="created_by" placeholder="e.g. john_smith" required>
+
+                <label for="note">Notes (optional)</label>
+                <textarea id="note" name="note" placeholder="Special handling or instructions..."></textarea>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Items to Deliver</div>
+                <div id="itemsList" class="items"></div>
+                <div class="actions" style="margin-top:0.5rem;">
+                    <button type="button" onclick="addItemRow()">+ Add Item</button>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="primary" style="flex:1;">Submit Order</button>
+                <button type="button" onclick="clearForm();">Clear</button>
+            </div>
+        </form>
+
+        <p class="hint" style="text-align:center; margin-top:1rem;">
+            <a href="/queue" style="color:var(--primary);">View job queue</a>
+        </p>
+    </div>
+
+    <script>
+        // ---- Theme ----
+        const themeToggle = document.getElementById('themeToggle');
+        function setTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            try { localStorage.setItem('theme', t); } catch (e) {}
+            themeToggle.textContent = t === 'dark' ? '☀️' : '🌙';
+        }
+        setTheme(document.documentElement.getAttribute('data-theme') || 'light');
+        themeToggle.addEventListener('click', () =>
+            setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+        // ---- Job ID ----
+        function generateJobId() {
+            const n = parseInt(localStorage.getItem('lastJobId') || '0') + 1;
+            localStorage.setItem('lastJobId', n);
+            return 'J' + String(n).padStart(3, '0');
+        }
+        document.getElementById('jobIdField').value = generateJobId();
+
+        // ---- Item rows ----
+        function addItemRow(name = '', qty = 1) {
+            const list = document.getElementById('itemsList');
+            const row  = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="text"   class="item-name" placeholder="Item name" value="${name}" required>
+                <input type="number" class="item-qty"  placeholder="Qty" value="${qty}" min="1" required>
+                <button type="button" class="mini" onclick="this.closest('.item-row').remove()">✕</button>
+            `;
+            list.appendChild(row);
+        }
+
+        function clearForm() {
+            document.getElementById('orderForm').reset();
+            document.getElementById('jobIdField').value = generateJobId();
+            document.getElementById('itemsList').innerHTML = '';
+            addItemRow();
+        }
+
+        // Start with one empty row
+        addItemRow();
+
+        // ---- Submit ----
+        document.getElementById('orderForm').addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const name = row.querySelector('.item-name').value.trim();
+                const qty  = parseInt(row.querySelector('.item-qty').value) || 1;
+                if (name) items.push({ name, quantity: qty });
+            });
+
+            if (items.length === 0) { alert('Add at least one item.'); return; }
+
+            const payload = {
+                job_id:      document.getElementById('jobIdField').value,
+                destination: document.getElementById('destination').value,
+                items,
+                note:        document.getElementById('note').value,
+                created_by:  document.getElementById('createdBy').value,
+            };
+
+            try {
+                const res = await fetch('/api/jobs', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(payload),
+                });
+
+                if (res.ok) {
+                    document.getElementById('successJobId').textContent = payload.job_id;
+                    const msg = document.getElementById('successMsg');
+                    msg.style.display = 'block';
+                    setTimeout(() => { msg.style.display = 'none'; clearForm(); }, 3000);
+                } else {
+                    alert('Error: ' + res.statusText);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

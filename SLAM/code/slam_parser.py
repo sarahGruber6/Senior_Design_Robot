@@ -52,7 +52,15 @@ def _fill_gaps(distances_mm: List[int]) -> Optional[List[int]]:
     return interp.astype(int).tolist()
 
 
-def parse_scan(payload: bytes, reverse_scan: bool = True) -> Optional[ParsedScan]:
+def _apply_exclusions(distances: list, zones: list) -> list:
+    out = list(distances)
+    for center, half_width in zones:
+        for offset in range(-half_width, half_width + 1):
+            out[(center + offset) % SCAN_BINS] = 0
+    return out
+
+
+def parse_scan(payload: bytes, reverse_scan: bool = True, exclusion_zones: list = None) -> Optional[ParsedScan]:
     if len(payload) != 4 + 4 + 4 + 2 + 360 * 2:
         raise ValueError(f"SCN3: expected 734 bytes, got {len(payload)}")
 
@@ -63,6 +71,9 @@ def parse_scan(payload: bytes, reverse_scan: bool = True) -> Optional[ParsedScan
     ts_robot_ms = struct.unpack_from("<I", payload, 8)[0]
     reported_valid = struct.unpack_from("<H", payload, 12)[0]
     distances = list(struct.unpack_from("<360H", payload, 14))
+
+    if exclusion_zones:
+        distances = _apply_exclusions(distances, exclusion_zones)
 
     filled = _fill_gaps(distances)
     if filled is None:
