@@ -1,95 +1,85 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>Job Queued</title>
-
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-  <!-- dark mode toggle -->
-  <script>
-  (function () {
-    try {
-      const saved = localStorage.getItem("theme");
-      if (saved) document.documentElement.dataset.theme = saved;
-    } catch (e) {}
-  })();
-  </script>
-
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Queued</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('theme');
+                if (saved) document.documentElement.dataset.theme = saved;
+            } catch (e) {}
+        })();
+    </script>
 </head>
-
 <body>
-  <div class="topbar">
-    <h2 class="title">Robot Job Publisher</h2>
-    <button id="themeToggle" class="theme-toggle" type="button">🌙 Dark</button>
-  </div>
-
-  <div class="wrap">
-    <div class="card">
-      <h2 style="margin:0 0 6px 0;">Job queued</h2>
-
-      <div class="row">
-        <div><span class="pill">{{ job.get("status", "queued") }}</span></div>
-        <div><strong>Job ID:</strong> {{ job["job_id"] }}</div>
-        <div><strong>Destination:</strong> {{ job["destination"] }}</div>
-        <div><strong>Created by:</strong> {{ job["created_by"] }}</div>
-      </div>
-
-      <p class="muted" style="margin-top:10px;">
-        Robot will receive it when it claims the next job.
-      </p>
-
-      <h3 style="margin:16px 0 6px 0;">Items</h3>
-      <table>
-        <thead>
-          <tr><th>Part</th><th>Qty</th></tr>
-        </thead>
-        <tbody>
-          {% for it in job["items"] %}
-          <tr>
-            <td>{{ it["part"] }}</td>
-            <td><strong>{{ it["qty"] }}</strong></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-      {% if job.get("note") %}
-        <p style="margin-top:12px;"><strong>Note:</strong> {{ job["note"] }}</p>
-      {% endif %}
-
-      <a class="btn" href="/">Queue another job</a>
-      <a class="btn secondary" href="/api/jobs">View queue (JSON)</a>
-
-      <details>
-        <summary>Show technical details (raw JSON)</summary>
-        <pre>{{ job | tojson(indent=2) }}</pre>
-      </details>
+    <div class="topbar">
+        <span class="title">Robot Job Publisher</span>
+        <button id="themeToggle" class="theme-toggle" type="button">🌙</button>
     </div>
-  </div>
+
+    <div class="wrap">
+        <div class="card">
+            <div class="section-title">Job Queued</div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem; margin-bottom:0.75rem;">
+                <span><span class="badge queued">{{ job.get("status", "queued") }}</span></span>
+                <span><strong>Job ID:</strong> {{ job["job_id"] }}</span>
+                <span><strong>Destination:</strong> {{ job["destination"] }}</span>
+                <span><strong>Created by:</strong> {{ job["created_by"] }}</span>
+            </div>
+
+            <p class="muted">Robot will receive it when it claims the next job.</p>
+
+            <div class="section-title" style="margin-top:1rem;">Items</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Item</th><th>Qty</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for it in job["items"] %}
+                        <tr>
+                            <td>{{ it.get("part", it.get("name", "")) }}</td>
+                            <td><strong>{{ it.get("qty", it.get("quantity", "")) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if job.get("note") %}
+                <p style="margin-top:0.75rem;"><strong>Note:</strong> {{ job["note"] }}</p>
+            {% endif %}
+
+            <div class="actions" style="margin-top:1rem;">
+                <a class="btn primary" href="/">Queue another job</a>
+                <a class="btn" href="/queue">View queue</a>
+            </div>
+
+            <details style="margin-top:1rem;">
+                <summary class="hint" style="cursor:pointer;">Show raw JSON</summary>
+                <pre style="margin-top:0.5rem; padding:0.75rem; background:var(--input-bg); border-radius:var(--radius); font-size:0.8rem; overflow-x:auto;">{{ job | tojson(indent=2) }}</pre>
+            </details>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const root = document.documentElement;
+            const btn  = document.getElementById('themeToggle');
+            if (!btn) return;
+            function setTheme(t) {
+                root.dataset.theme = t;
+                try { localStorage.setItem('theme', t); } catch (e) {}
+                btn.textContent = t === 'dark' ? '☀️' : '🌙';
+            }
+            setTheme(root.dataset.theme || 'light');
+            btn.addEventListener('click', () =>
+                setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark'));
+        })();
+    </script>
 </body>
-
-<!-- dark mode toggling/saving -->
-<script>
-  (function () {
-    const root = document.documentElement;
-    const btn = document.getElementById("themeToggle");
-    if (!btn) return;
-
-    function setTheme(t) {
-      root.dataset.theme = t;
-      try { localStorage.setItem("theme", t); } catch(e) {}
-      btn.textContent = (t === "dark") ? "☀️ Light" : "🌙 Dark";
-      btn.setAttribute("aria-pressed", t === "dark");
-    }
-
-    const current = root.dataset.theme || "light";
-    setTheme(current);
-
-    btn.addEventListener("click", () => {
-      setTheme(root.dataset.theme === "dark" ? "light" : "dark");
-    });
-  })();
-</script>
-
 </html>

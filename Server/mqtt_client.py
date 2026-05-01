@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 import os
 import socket
 import time
+import threading
 import uuid
 
 from .config import MQTT_HOST, MQTT_PORT, TOPIC_JOB, TOPIC_TWIST, TOPIC_GOAL, TOPIC_STOP, TOPIC_DONE, TOPIC_ACK, TOPIC_TELEMETRY, TOPIC_LIDAR
@@ -27,6 +28,9 @@ class MqttBus:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self._pending_acks = {}
+        self._topic_handlers = {}  # {topic: callback(payload, msg.topic)}
+        self._seq_lock = threading.Lock()
+        self._recent_dedupe = {}
 
     def start(self):
         self.client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
@@ -38,20 +42,60 @@ class MqttBus:
         self.client.publish(TOPIC_JOB, msg, qos=1, retain=True)
         STATE["last_published_job"] = payload
 
-    def publish_twist(self, v: float, w: float, ttl_ms: int, mode: str):
-        self._seq += 1
-        payload = {"mode": mode, "seq": self._seq, "v": v, "w": w, "ttl_ms": ttl_ms}
+    def publish_twist(self, v: float, w: float, ttl_ms: int, mode: str, command_id: str = None):
+        with self._seq_lock:
+            self._seq += 1
+            seq = self._seq
+        if command_id is None:
+            command_id = f"{mode}-{seq}-{uuid.uuid4().hex[:6]}"
+        payload = {
+            "mode": mode,
+            "seq": seq,
+            "command_id": command_id,
+            "v": v,
+            "w": w,
+            "ttl_ms": ttl_ms,
+        }
         msg = json.dumps(payload, separators=(",",":"))
         self.client.publish(TOPIC_TWIST, msg, qos=1, retain=False)
         return payload
     
-    def publish_twist_and_wait_ack(self, v: float, w: float, ttl_ms: int, mode: str, ack_timeout_s: float = 0.4, retries: int = 2):
-        self._seq += 1
-        command_id = f"twist-{self._seq}-{uuid.uuid4().hex[:6]}"
+    def publish_twist_and_wait_ack(
+        self,
+        v: float,
+        w: float,
+        ttl_ms: int,
+        mode: str,
+        ack_timeout_s: float = 1.5,
+        retries: int = 2,
+        dedupe_key: str = None,
+        dedupe_window_s: float = 0.75,
+    ):
+        now = time.monotonic()
+        with self._seq_lock:
+            for key, entry in list(self._recent_dedupe.items()):
+                if now - entry["at"] > 10.0:
+                    self._recent_dedupe.pop(key, None)
+
+            entry = self._recent_dedupe.get(dedupe_key) if dedupe_key else None
+            if entry and now - entry["at"] <= dedupe_window_s:
+                seq = entry["seq"]
+                command_id = entry["command_id"]
+                entry["at"] = now
+            else:
+                self._seq += 1
+                seq = self._seq
+                command_id = f"twist-{seq}-{uuid.uuid4().hex[:6]}"
+                if dedupe_key:
+                    self._recent_dedupe[dedupe_key] = {
+                        "seq": seq,
+                        "command_id": command_id,
+                        "at": now,
+                    }
 
         payload = {
             "mode": mode,
-            "seq": self._seq,
+            "seq": seq,
             "command_id": command_id,
             "v": v,
             "w": w,
@@ -95,10 +139,7 @@ class MqttBus:
 
         info = self.client.publish(TOPIC_DONE, msg, qos=1, retain=False)
 
-        # Record locally for /status UI
         STATE["last_done"] = {"job_id": job_id, "raw": msg, "at": now_iso()}
-
-        # Optional: clear retained job immediately
         if clear_job:
             self.clear_retained_job()
 
@@ -112,20 +153,39 @@ class MqttBus:
     def clear_retained_job(self):
         self.client.publish(TOPIC_JOB, payload=b"", qos=1, retain=True)
 
+    def register_handler(self, topic: str, callback):
+        self._topic_handlers[topic] = callback
+        if self.client.is_connected():
+            self.client.subscribe(topic, qos=1)
+        print(f"[MQTT] registered handler for {topic}")
+
     def on_connect(self, client, userdata, flags, rc):
         print("[MQTT] subscribing to:")
         print("  DONE:", TOPIC_DONE)
         print("  TELEMETRY:", TOPIC_TELEMETRY)
         print("  ACK:", TOPIC_ACK)
+
+        topics = [(TOPIC_DONE, 1), (TOPIC_ACK, 1), (TOPIC_TELEMETRY, 0)]
+        for topic in self._topic_handlers:
+            print(f"  {topic} (handler)")
+            topics.append((topic, 1))
+
         if rc == 0:
             print(f"[MQTT] Connected successfully rc={rc}")
-            client.subscribe([(TOPIC_DONE, 1), (TOPIC_ACK,1), (TOPIC_TELEMETRY, 0)])
+            client.subscribe(topics)
         else:
             print(f"[MQTT] Connection failed rc={rc}")
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         payload_raw = msg.payload.decode("utf-8", errors="replace").strip()
+
+        if topic in self._topic_handlers:
+            try:
+                self._topic_handlers[topic](msg.payload, topic)
+            except Exception as e:
+                print(f"[MQTT] handler error for {topic}: {e}")
+            return
 
         if topic == TOPIC_DONE:
             job_id = None

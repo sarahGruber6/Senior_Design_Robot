@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_dashboard.css') }}">
+</head>
+<body>
+    <header class="admin-header">
+        <div class="header-inner">
+            <h1>Admin Dashboard</h1>
+            <div class="header-right">
+                <div class="status-bar">
+                    <span class="status-item">
+                        <span class="status-label">Pose</span>
+                        <span id="poseDisplay" class="status-value">--</span>
+                    </span>
+                    <span class="status-item">
+                        <span class="status-label">Active Job</span>
+                        <span id="activeJobDisplay" class="status-value">None</span>
+                    </span>
+                    <span class="status-item" id="obstacleIndicator" style="display:none;">
+                        <span style="background:#c62828;color:#fff;padding:0.1rem 0.5rem;border-radius:999px;font-size:0.75rem;font-weight:700;letter-spacing:0.03em;">
+                            OBSTACLE
+                        </span>
+                    </span>
+                </div>
+                <button id="theme-btn" class="theme-btn">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-layout">
+        <!-- Map -->
+        <section class="map-section">
+            <h2>Map</h2>
+            <div class="map-container">
+                <canvas id="mapCanvas" width="600" height="600"></canvas>
+                <div class="map-overlay">
+                    <div class="map-controls">
+                        <button id="mapZoomIn"  class="map-btn">+</button>
+                        <button id="mapZoomOut" class="map-btn">-</button>
+                        <button id="mapReset"   class="map-btn">R</button>
+                    </div>
+                    <div id="coordDisplay" class="coord-display">--</div>
+                </div>
+            </div>
+            <div class="map-hint" style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                <span>Click map to set goal. SLAM: <span id="mappingQuality">--</span></span>
+                <span id="staticMapBadge" style="display:none;background:#2e7d32;color:#fff;font-size:0.72rem;padding:0.15rem 0.5rem;border-radius:999px;">Map Saved</span>
+                <div style="margin-left:auto;display:flex;gap:0.4rem;">
+                    <button id="saveMapBtn"  class="btn btn-success" style="padding:0.25rem 0.65rem;font-size:0.8rem;">Save Map</button>
+                    <button id="clearMapBtn" class="btn btn-secondary" style="padding:0.25rem 0.65rem;font-size:0.8rem;display:none;">Clear Saved</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <aside class="control-panel">
+
+            <!-- Manual Control -->
+            <div class="card">
+                <h3>Manual Control</h3>
+
+                <div class="tab-row">
+                    <button class="tab active" data-mode="directional">Directional</button>
+                    <button class="tab" data-mode="direct">Direct</button>
+                </div>
+
+                <div class="tab-content active" id="directionalMode">
+                    <div class="field-row">
+                        <label for="speedSlider">Speed: <span id="speedDisplay">0.3</span> m/s</label>
+                        <input type="range" id="speedSlider" min="0.1" max="1.0" step="0.1" value="0.3">
+                    </div>
+                    <div class="field-row">
+                        <label for="durationInput">Duration (ms)</label>
+                        <input type="number" id="durationInput" value="500" min="100" max="5000">
+                    </div>
+                    <div class="dpad">
+                        <button class="dpad-btn" data-action="forward"  style="grid-area:up">↑</button>
+                        <button class="dpad-btn" data-action="left"     style="grid-area:left">←</button>
+                        <button class="dpad-btn dpad-stop" data-action="stop" style="grid-area:mid">Stop</button>
+                        <button class="dpad-btn" data-action="right"    style="grid-area:right">→</button>
+                        <button class="dpad-btn" data-action="backward" style="grid-area:down">↓</button>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="directMode">
+                    <div class="field-row">
+                        <label for="vSlider">Linear v: <span id="vDisplay">0</span> m/s</label>
+                        <input type="range" id="vSlider" min="-1" max="1" step="0.05" value="0">
+                    </div>
+                    <div class="field-row">
+                        <label for="wSlider">Angular w: <span id="wDisplay">0</span> rad/s</label>
+                        <input type="range" id="wSlider" min="-1" max="1" step="0.05" value="0">
+                    </div>
+                    <div class="field-row">
+                        <label for="directDurationInput">Duration (ms)</label>
+                        <input type="number" id="directDurationInput" value="500" min="100" max="5000">
+                    </div>
+                    <button id="sendDirectBtn" class="btn btn-primary full">Send</button>
+                </div>
+
+                <button id="emergencyStop" class="btn btn-danger full" style="margin-top:0.75rem;">Emergency Stop</button>
+            </div>
+
+            <!-- Autonomous Navigation -->
+            <div class="card">
+                <h3>Autonomous Navigation</h3>
+                <div class="field-row">
+                    <label for="goalX">Goal X (mm)</label>
+                    <input type="number" id="goalX" placeholder="0">
+                </div>
+                <div class="field-row">
+                    <label for="goalY">Goal Y (mm)</label>
+                    <input type="number" id="goalY" placeholder="0">
+                </div>
+                <div class="btn-stack">
+                    <button id="planPathBtn"   class="btn btn-primary full">Plan Path</button>
+                    <button id="planGoBtn"     class="btn btn-success full">Plan &amp; Go</button>
+                    <button id="goBtn"         class="btn btn-success full" style="display:none;">Go</button>
+                    <button id="cancelGoalBtn" class="btn btn-secondary full" style="display:none;">Cancel</button>
+                </div>
+                <div id="goalStatus" class="nav-status" style="display:none;">
+                    <div class="nav-status-row">State: <strong id="navState">--</strong></div>
+                    <div class="nav-status-row">Goal: <span id="goalCoords">--</span></div>
+                    <div class="nav-status-row">Step <span id="pathIndex">--</span> / <span id="pathLength">--</span></div>
+                </div>
+            </div>
+
+            <!-- Saved Places -->
+            <div class="card">
+                <h3>Saved Places</h3>
+                <div id="placesList" style="margin-bottom:0.75rem;">
+                    <div class="muted" id="placesEmpty">No saved places yet.</div>
+                </div>
+                <div class="field-row">
+                    <label for="newPlaceName">Name</label>
+                    <input type="text" id="newPlaceName" placeholder="bench, dock, charging…">
+                </div>
+                <button id="savePlaceBtn" class="btn btn-secondary full" style="margin-top:0.25rem;">
+                    Save Current Goal as Place
+                </button>
+            </div>
+
+            <!-- Job Management -->
+            <div class="card">
+                <h3>Job Management</h3>
+                <div class="btn-stack">
+                    <button id="claimNextBtn"   class="btn btn-warning full">Claim Next Job</button>
+                    <button id="finishActiveBtn" class="btn btn-success full">Finish Active</button>
+                </div>
+            </div>
+
+        </aside>
+    </main>
+
+    <!-- Telemetry -->
+    <section class="telemetry card">
+        <div class="tab-row">
+            <button class="tele-tab active" data-tab="jobs">Jobs</button>
+            <button class="tele-tab" data-tab="slam">SLAM</button>
+            <button class="tele-tab" data-tab="mqtt">MQTT</button>
+        </div>
+
+        <div class="tele-content active" id="jobsTab">
+            <div class="table-wrap">
+                <table class="jobs-table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Job ID</th>
+                            <th>Destination</th>
+                            <th>Items</th>
+                            <th>Created By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody">
+                        <tr><td colspan="5" class="table-empty">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tele-content" id="slamTab">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Scans Received</span>
+                    <span class="stat-value" id="scansReceived">--</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Scans Skipped</span>
+                    <span class="stat-value" id="scansSkipped">--</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">SLAM Updates</span>
+                    <span class="stat-value" id="slamUpdates">--</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Encoder Reads</span>
+                    <span class="stat-value" id="encoderReads">--</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Static Map</span>
+                    <span class="stat-value" id="staticMapStatus">--</span>
+                </div>
+                <div class="stat-card" style="font-size:0.72rem;color:var(--text-muted);align-self:center;">
+                    Walls: dark&nbsp;&nbsp;People: <span style="color:#2277ee;">blue</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tele-content" id="mqttTab">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">LIDAR Topic</span>
+                    <span class="stat-value mono-sm">robot/r1/lidar</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Encoder Topic</span>
+                    <span class="stat-value mono-sm">robot/r1/encoder</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Twist Topic</span>
+                    <span class="stat-value mono-sm">robot/r1/cmd/twist</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer actions -->
+    <footer class="admin-footer">
+        <button id="archiveDbBtn" class="btn btn-danger">Archive DB</button>
+        <a href="/" class="footer-link">Back to Order Page</a>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/map_component.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/map_viewer.js') }}"></script>
+    <script>
+        // ---- Theme ----
+        const themeBtn = document.getElementById('theme-btn');
+        const htmlEl   = document.documentElement;
+
+        function applyTheme(t) {
+            htmlEl.setAttribute('data-theme', t);
+            localStorage.setItem('theme', t);
+            themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+        }
+        applyTheme(localStorage.getItem('theme') || 'light');
+        themeBtn.addEventListener('click', () =>
+            applyTheme(htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+
+        // ---- Mode tabs (manual control) ----
+        document.querySelectorAll('.tab[data-mode]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab[data-mode]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.mode + 'Mode').classList.add('active');
+            });
+        });
+
+        // ---- Telemetry tabs ----
+        document.querySelectorAll('.tele-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tele-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tele-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+            });
+        });
+
+        // ---- Slider displays ----
+        document.getElementById('speedSlider').addEventListener('input', e =>
+            document.getElementById('speedDisplay').textContent = e.target.value);
+        document.getElementById('vSlider').addEventListener('input', e =>
+            document.getElementById('vDisplay').textContent = e.target.value);
+        document.getElementById('wSlider').addEventListener('input', e =>
+            document.getElementById('wDisplay').textContent = e.target.value);
+
+        // ---- Motor command helper ----
+        async function sendMotorCommand(v, w, duration) {
+            try {
+                const res = await fetch('/api/manual/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ v, w, ttl_ms: duration })
+                });
+                const data = await res.json();
+                if (!data.ok) alert('Motor command failed: ' + data.error);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // ---- Direct mode ----
+        document.getElementById('sendDirectBtn').addEventListener('click', () =>
+            sendMotorCommand(
+                parseFloat(document.getElementById('vSlider').value),
+                parseFloat(document.getElementById('wSlider').value),
+                parseInt(document.getElementById('directDurationInput').value)
+            ));
+
+        // ---- D-pad ----
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action   = btn.dataset.action;
+                const duration = parseInt(document.getElementById('durationInput').value);
+                const speed    = parseFloat(document.getElementById('speedSlider').value);
+                let v = 0, w = 0;
+                if      (action === 'forward')  v =  speed;
+                else if (action === 'backward') v = -speed;
+                else if (action === 'left')     w =  1.2;
+                else if (action === 'right')    w = -1.2;
+                sendMotorCommand(v, w, duration);
+            });
+        });
+
+        // ---- Emergency stop ----
+        document.getElementById('emergencyStop').addEventListener('click', async () => {
+            await fetch('/api/manual/cmd', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'stop', ttl_ms: 0 })
+            });
+            alert('Emergency stop activated.');
+        });
+
+        // ---- Autonomy state helpers ----
+        function setNavIdle() {
+            document.getElementById('planPathBtn').style.display   = '';
+            document.getElementById('planGoBtn').style.display     = '';
+            document.getElementById('goBtn').style.display         = 'none';
+            document.getElementById('cancelGoalBtn').style.display = 'none';
+            document.getElementById('goalStatus').style.display    = 'none';
+        }
+
+        function setNavPlanned(pathLength, goal) {
+            document.getElementById('planPathBtn').style.display   = 'none';
+            document.getElementById('planGoBtn').style.display     = 'none';
+            document.getElementById('goBtn').style.display         = '';
+            document.getElementById('cancelGoalBtn').style.display = '';
+            document.getElementById('goalStatus').style.display    = '';
+            document.getElementById('navState').textContent    = 'Planned';
+            document.getElementById('navState').className      = 'state-planned';
+            document.getElementById('goalCoords').textContent  =
+                goal ? `(${Math.round(goal[0])}, ${Math.round(goal[1])}) mm` : '--';
+            document.getElementById('pathLength').textContent  = pathLength;
+            document.getElementById('pathIndex').textContent   = '0';
+        }
+
+        function setNavExecuting() {
+            document.getElementById('planPathBtn').style.display   = 'none';
+            document.getElementById('planGoBtn').style.display     = 'none';
+            document.getElementById('goBtn').style.display         = 'none';
+            document.getElementById('cancelGoalBtn').style.display = '';
+            document.getElementById('goalStatus').style.display    = '';
+            document.getElementById('navState').textContent  = 'Executing';
+            document.getElementById('navState').className    = 'state-executing';
+        }
+
+        // ---- Plan path ----
+        document.getElementById('planPathBtn').addEventListener('click', async () => {
+            const x = parseFloat(document.getElementById('goalX').value);
+            const y = parseFloat(document.getElementById('goalY').value);
+            if (isNaN(x) || isNaN(y)) { alert('Enter valid X and Y coordinates.'); return; }
+            try {
+                const res  = await fetch('/api/autonomy/goal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x_mm: x, y_mm: y })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    setNavPlanned(data.path_length, data.goal);
+                    if (data.message && data.planning_mode === 'direct_fallback') alert(data.message);
+                }
+                else         alert('Path planning failed: ' + data.error);
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // ---- Go ----
+        document.getElementById('goBtn').addEventListener('click', async () => {
+            try {
+                const res  = await fetch('/api/autonomy/go', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) setNavExecuting();
+                else         alert('Go failed: ' + data.error);
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // ---- Cancel ----
+        document.getElementById('cancelGoalBtn').addEventListener('click', async () => {
+            await fetch('/api/autonomy/cancel', { method: 'POST' });
+            setNavIdle();
+        });
+
+        // ---- Map click: fill goal inputs (no auto-plan) ----
+        document.getElementById('mapCanvas').addEventListener('click', e => {
+            if (typeof MapViewer === 'undefined') return;
+            const rect = document.getElementById('mapCanvas').getBoundingClientRect();
+            // Delegate to MapCanvas.screenToMap so the math is consistent with
+            // the mousemove coord display and the actual map resolution.
+            const [mmX, mmY] = mapViewer.mapCanvas.screenToMap(
+                e.clientX - rect.left,
+                e.clientY - rect.top,
+            );
+            document.getElementById('goalX').value = Math.round(mmX);
+            document.getElementById('goalY').value = Math.round(mmY);
+        });
+
+        // ---- Periodic polling ----
+        let lastNavExecuting = false;
+
+        setInterval(async () => {
+            try {
+                const [poseRes, statsRes, jobsRes, navRes, robotRes] = await Promise.all([
+                    fetch('/api/slam/pose'),
+                    fetch('/api/slam/stats'),
+                    fetch('/api/jobs'),
+                    fetch('/api/autonomy/status'),
+                    fetch('/api/robot/status'),
+                ]);
+
+                const pose   = await poseRes.json();
+                const stats  = await statsRes.json();
+                const jobs   = await jobsRes.json();
+                const nav    = await navRes.json();
+                const robot  = await robotRes.json();
+
+                // Obstacle indicator in header
+                const obsEl = document.getElementById('obstacleIndicator');
+                if (obsEl) obsEl.style.display = (robot.ok && robot.obstacle) ? '' : 'none';
+
+                if (pose.ok) {
+                    document.getElementById('poseDisplay').textContent =
+                        `(${Math.round(pose.x_mm)}, ${Math.round(pose.y_mm)})`;
+                }
+
+                if (stats.ok) {
+                    document.getElementById('scansReceived').textContent = stats.stats.lidar_received;
+                    document.getElementById('scansSkipped').textContent  = stats.stats.lidar_skipped;
+                    document.getElementById('slamUpdates').textContent   = stats.stats.slam_updates;
+                    document.getElementById('encoderReads').textContent  = stats.stats.encoder_received;
+                    setStaticMapUI(!!stats.has_static_map);
+                }
+
+                if (jobs.jobs && jobs.jobs.length > 0) {
+                    document.getElementById('jobsTableBody').innerHTML =
+                        jobs.jobs.slice(0, 10).map(job => {
+                            const items = (job.items || []).map(i => `${i.name} x${i.quantity}`).join(', ');
+                            return `<tr>
+                                <td><span class="badge badge-${job.status}">${job.status}</span></td>
+                                <td>${job.job_id}</td>
+                                <td>${job.destination}</td>
+                                <td>${items}</td>
+                                <td>${job.created_by}</td>
+                            </tr>`;
+                        }).join('');
+                }
+
+                if (nav.ok) {
+                    if (nav.executing) {
+                        setNavExecuting();
+                        if (nav.blocked_by_obstacle) {
+                            document.getElementById('navState').textContent = 'Blocked';
+                            document.getElementById('navState').className   = 'state-planned';
+                        }
+                        if (nav.goal) {
+                            document.getElementById('goalCoords').textContent =
+                                `(${Math.round(nav.goal[0])}, ${Math.round(nav.goal[1])}) mm`;
+                        }
+                        document.getElementById('pathLength').textContent = nav.path_length;
+                        document.getElementById('pathIndex').textContent  = nav.path_index;
+                    } else if (nav.has_path) {
+                        setNavPlanned(nav.path_length, nav.goal);
+                        document.getElementById('pathIndex').textContent = nav.path_index;
+                    } else if (!nav.has_path && lastNavExecuting) {
+                        setNavIdle();
+                    }
+                    lastNavExecuting = nav.executing;
+                }
+            } catch (err) {
+                console.error('Poll error:', err);
+            }
+        }, 1000);
+
+        // ---- Plan & Go ----
+        document.getElementById('planGoBtn').addEventListener('click', async () => {
+            const x = parseFloat(document.getElementById('goalX').value);
+            const y = parseFloat(document.getElementById('goalY').value);
+            if (isNaN(x) || isNaN(y)) { alert('Enter valid X and Y coordinates.'); return; }
+            try {
+                const planRes  = await fetch('/api/autonomy/plan_go', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x_mm: x, y_mm: y })
+                });
+                const planData = await planRes.json();
+                if (!planData.ok) { alert('Plan & Go failed: ' + planData.error); return; }
+                setNavExecuting();
+                if (planData.message && planData.planning_mode === 'direct_fallback') alert(planData.message);
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // ---- Saved places ----
+        let placesCache = [];
+
+        function renderPlacesList(places) {
+            placesCache = places;
+            const list  = document.getElementById('placesList');
+            const empty = document.getElementById('placesEmpty');
+
+            if (!places || places.length === 0) {
+                empty.style.display = '';
+                // Remove any existing place rows
+                list.querySelectorAll('.place-row').forEach(el => el.remove());
+                return;
+            }
+            empty.style.display = 'none';
+            list.querySelectorAll('.place-row').forEach(el => el.remove());
+
+            for (const p of places) {
+                const row = document.createElement('div');
+                row.className = 'place-row';
+                row.style.cssText = 'display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem;';
+                row.innerHTML = `
+                    <div style="flex:1;min-width:0;">
+                        <strong style="font-size:0.875rem;">${escapeHtml(p.name)}</strong>
+                        <span class="muted" style="font-size:0.75rem;margin-left:0.3rem;">
+                            (${Math.round(p.x_mm)}, ${Math.round(p.y_mm)}) mm
+                        </span>
+                    </div>
+                    <button class="btn btn-success" style="padding:0.2rem 0.5rem;font-size:0.75rem;"
+                            data-name="${escapeHtml(p.name)}" data-x="${p.x_mm}" data-y="${p.y_mm}">Go</button>
+                    <button class="btn btn-secondary" style="padding:0.2rem 0.5rem;font-size:0.75rem;"
+                            data-del="${escapeHtml(p.name)}">✕</button>
+                `;
+
+                row.querySelector('[data-name]').addEventListener('click', async function () {
+                    const xv = parseFloat(this.dataset.x);
+                    const yv = parseFloat(this.dataset.y);
+                    document.getElementById('goalX').value = Math.round(xv);
+                    document.getElementById('goalY').value = Math.round(yv);
+                    try {
+                        const planRes = await fetch('/api/autonomy/plan_go', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ x_mm: xv, y_mm: yv })
+                        });
+                        const planData = await planRes.json();
+                        if (planData.ok) setNavExecuting();
+                        else             alert('Plan & Go failed: ' + planData.error);
+                    } catch (err) { alert('Error: ' + err.message); }
+                });
+
+                row.querySelector('[data-del]').addEventListener('click', async function () {
+                    const name = this.dataset.del;
+                    if (!confirm(`Delete place "${name}"?`)) return;
+                    try {
+                        await fetch(`/api/places/${encodeURIComponent(name)}`, { method: 'DELETE' });
+                        await refreshPlaces();
+                        if (mapViewer) mapViewer.places = placesCache;
+                    } catch (err) { alert('Error: ' + err.message); }
+                });
+
+                list.insertBefore(row, empty);
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+        }
+
+        async function refreshPlaces() {
+            try {
+                const res  = await fetch('/api/places');
+                const data = await res.json();
+                if (data.ok) {
+                    renderPlacesList(data.places);
+                    if (mapViewer) { mapViewer.places = data.places; mapViewer._render(); }
+                }
+            } catch (e) { console.error('Places refresh error:', e); }
+        }
+
+        document.getElementById('savePlaceBtn').addEventListener('click', async () => {
+            const name = document.getElementById('newPlaceName').value.trim();
+            const x    = parseFloat(document.getElementById('goalX').value);
+            const y    = parseFloat(document.getElementById('goalY').value);
+            if (!name)         { alert('Enter a place name.'); return; }
+            if (isNaN(x) || isNaN(y)) { alert('Set goal coordinates first (click the map or enter X/Y).'); return; }
+            try {
+                const res  = await fetch('/api/places', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, x_mm: x, y_mm: y })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById('newPlaceName').value = '';
+                    await refreshPlaces();
+                } else {
+                    alert('Save failed: ' + data.error);
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // Initial places load
+        refreshPlaces();
+
+        // ---- Save / Clear Map ----
+        function setStaticMapUI(hasSaved) {
+            const badge    = document.getElementById('staticMapBadge');
+            const clearBtn = document.getElementById('clearMapBtn');
+            const statusEl = document.getElementById('staticMapStatus');
+            badge.style.display    = hasSaved ? '' : 'none';
+            clearBtn.style.display = hasSaved ? '' : 'none';
+            if (statusEl) statusEl.textContent = hasSaved ? 'Saved ✓' : 'None';
+        }
+
+        document.getElementById('saveMapBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('saveMapBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            try {
+                const res  = await fetch('/api/slam/save_map', { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    setStaticMapUI(true);
+                    btn.textContent = 'Saved!';
+                    setTimeout(() => { btn.textContent = 'Save Map'; btn.disabled = false; }, 1500);
+                } else {
+                    alert('Save failed: ' + (data.error || 'unknown error'));
+                    btn.textContent = 'Save Map';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.textContent = 'Save Map';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('clearMapBtn').addEventListener('click', async () => {
+            if (!confirm('Clear the saved static map? The live SLAM map will be used for display and planning again.')) return;
+            try {
+                const res  = await fetch('/api/slam/save_map', { method: 'DELETE' });
+                const data = await res.json();
+                if (data.ok) setStaticMapUI(false);
+                else         alert('Clear failed: ' + (data.error || 'unknown error'));
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // ---- Map reset (R button) ----
+        document.getElementById('mapReset').addEventListener('click', async () => {
+            if (!confirm('Reset the SLAM map?\n\nThis clears the current live map and resets the robot pose to the origin. Any active navigation will be cancelled.\n\nThe saved static map (if any) is kept and used to seed the new map so the robot can re-localise.')) return;
+            try {
+                const res  = await fetch('/api/slam/reset', { method: 'POST' });
+                const data = await res.json();
+                if (!data.ok) alert('Reset failed: ' + (data.error || 'unknown'));
+                // MapViewer's poll loops will automatically pick up the cleared map
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // ---- Map viewer ----
+        let mapViewer = null;
+        setTimeout(() => {
+            if (typeof MapViewer !== 'undefined') {
+                mapViewer = new MapViewer('mapCanvas');
+                mapViewer.start();
+            }
+        }, 100);
+    </script>
+</body>
+</html>
